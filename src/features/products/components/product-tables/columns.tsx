@@ -66,12 +66,18 @@ export const columns: ColumnDef<Product>[] = [
     accessorKey: 'type',
     header: 'TYPE',
     cell: ({ row }) => (
-      <Badge
-        variant={row.getValue('type') === 'service' ? 'default' : 'secondary'}
-        className='capitalize'
-      >
-        {row.getValue('type')}
-      </Badge>
+      <div className='flex flex-wrap gap-2'>
+        <Badge
+          variant={row.getValue('type') === 'service' ? 'default' : 'secondary'}
+          className='capitalize'
+        >
+          {row.getValue('type')}
+        </Badge>
+        {row.original.isDigital ? <Badge variant='outline'>Digital</Badge> : null}
+        {row.original.activePlanCount > 0 ? (
+          <Badge variant='secondary'>{row.original.activePlanCount} plans</Badge>
+        ) : null}
+      </div>
     )
   },
   {
@@ -88,6 +94,16 @@ export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: 'description',
     header: 'DESCRIPTION'
+  },
+  {
+    id: 'delivery',
+    header: 'DELIVERY',
+    cell: ({ row }) =>
+      row.original.isDigital ? (
+        <div className='text-sm'>Portal / Link</div>
+      ) : (
+        <div className='text-muted-foreground text-sm'>Standard</div>
+      )
   },
 
   {

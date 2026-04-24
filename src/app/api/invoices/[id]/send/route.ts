@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { InvoiceStatus } from '@prisma/client';
+import { buildInvoicePaymentLink, markInvoiceAsSent } from '@/lib/billing-workflows';
 import {
   buildDocumentUrl,
   createAttachmentContent,
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   const origin = getDocumentOrigin(request);
   const documentToken = createDocumentToken('invoice', invoice.id);
   const documentUrl = buildDocumentUrl(origin, 'invoice', invoice.id, documentToken);
+  const payment = await buildInvoicePaymentLink(origin, invoice.id);
   const documentPdf = await generateInvoicePdf(invoice);
   const attachmentLabel = `invoice-${invoice.number}.pdf`;
 
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     notes: invoice.notes,
     projectName: invoice.projectName,
     documentUrl,
+    paymentLink: payment.paymentLink,
     attachmentLabel
   });
 
@@ -54,20 +56,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     ]
   });
 
-  const nextStatus: InvoiceStatus =
-    invoice.status === InvoiceStatus.DRAFT ? InvoiceStatus.SENT : (invoice.status as InvoiceStatus);
-  if (nextStatus !== invoice.status) {
-    await prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { status: nextStatus }
-    });
-  }
+  const statusResult = await markInvoiceAsSent(prisma, invoice.id);
 
   return NextResponse.json({
     success: true,
     provider: result.provider,
     messageId: result.id,
-    status: nextStatus,
-    documentUrl
+    status: statusResult.status,
+    documentUrl,
+    paymentLink: payment.paymentLink
   });
 }

@@ -56,10 +56,14 @@ function calculateNextBillingDate(startDate: string, interval: string): string |
 
 export default function ClientSubscriptionForm({
   initialData,
-  pageTitle
+  pageTitle,
+  serviceId,
+  returnPath
 }: {
   initialData: ClientSubscription | null;
   pageTitle: string;
+  serviceId?: number;
+  returnPath?: string;
 }) {
   const router = useRouter();
   const isEdit = !!initialData;
@@ -74,7 +78,11 @@ export default function ClientSubscriptionForm({
     label: client.company ? `${client.name} - ${client.company}` : client.name
   }));
 
-  const planOptions = planData.items.map((plan) => ({
+  const scopedPlans = serviceId
+    ? planData.items.filter((plan) => plan.serviceId === serviceId)
+    : planData.items;
+
+  const planOptions = scopedPlans.map((plan) => ({
     value: plan.id,
     label: `${plan.name} - ${plan.interval} - ${plan.price.toLocaleString('id-ID')}`
   }));
@@ -91,7 +99,7 @@ export default function ClientSubscriptionForm({
     ...createClientSubscriptionMutation,
     onSuccess: () => {
       toast.success('Client subscription created');
-      router.push('/dashboard/subscriptions');
+      router.push(returnPath ?? '/dashboard/subscriptions');
       router.refresh();
     },
     onError: () => {
@@ -103,7 +111,7 @@ export default function ClientSubscriptionForm({
     ...updateClientSubscriptionMutation,
     onSuccess: () => {
       toast.success('Client subscription updated');
-      router.push('/dashboard/subscriptions');
+      router.push(returnPath ?? '/dashboard/subscriptions');
       router.refresh();
     },
     onError: () => {
@@ -148,7 +156,7 @@ export default function ClientSubscriptionForm({
   });
 
   const values = useStore(form.store, (state) => state.values);
-  const selectedPlan = planData.items.find((plan) => plan.id === values.planId);
+  const selectedPlan = scopedPlans.find((plan) => plan.id === values.planId);
   const selectedProject = projectData.items.find((project) => project.id === values.projectId);
   const { FormTextField, FormTextareaField, FormSelectField, FormSwitchField } =
     useFormFields<ClientSubscriptionFormValues>();

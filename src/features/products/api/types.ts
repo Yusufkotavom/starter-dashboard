@@ -1,3 +1,15 @@
+import type { SubscriptionInterval } from '@/features/subscriptions/api/types';
+
+export interface ProductPlan {
+  id?: number;
+  name: string;
+  description?: string | null;
+  interval: SubscriptionInterval;
+  price: number;
+  isActive: boolean;
+  activeSubscriptions?: number;
+}
+
 export interface Product {
   id: number;
   photo_url: string;
@@ -8,6 +20,10 @@ export interface Product {
   category: string;
   categoryName: string;
   type: 'product' | 'service';
+  isDigital: boolean;
+  deliveryUrl: string | null;
+  subscriptionPlans: ProductPlan[];
+  activePlanCount: number;
   updated_at: string;
 }
 
@@ -40,7 +56,10 @@ export interface ProductMutationPayload {
   name: string;
   category: string;
   type: 'product' | 'service';
+  isDigital?: boolean;
+  deliveryUrl?: string | null;
   price: number;
   description: string;
   photoUrl?: string | null;
+  recurringPlans?: ProductPlan[];
 }

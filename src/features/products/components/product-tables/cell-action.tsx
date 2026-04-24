@@ -55,6 +55,11 @@ export function CellAction({ data }: CellActionProps) {
           <DropdownMenuItem onClick={() => router.push(`/dashboard/product/${data.id}`)}>
             <Icons.edit className='mr-2 h-4 w-4' /> Update
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push(`/dashboard/product/${data.id}/subscriptions`)}
+          >
+            <Icons.creditCard className='mr-2 h-4 w-4' /> Manage Plans
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Icons.trash className='mr-2 h-4 w-4' /> Delete
           </DropdownMenuItem>

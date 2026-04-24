@@ -131,6 +131,7 @@ interface InvoiceMailInput {
   projectName: string | null;
   documentUrl?: string | null;
   attachmentLabel?: string | null;
+  paymentLink?: string | null;
 }
 
 export function renderQuotationEmail(input: QuotationMailInput): MailMessage {
@@ -196,12 +197,17 @@ export function renderInvoiceEmail(input: InvoiceMailInput): MailMessage {
             : ''
         }
         ${
+          input.paymentLink
+            ? `<p><a href="${input.paymentLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 16px;border-radius:999px;">Open payment page</a></p>`
+            : ''
+        }
+        ${
           input.attachmentLabel
             ? `<p style="color:#6b7280;">Attachment included: ${input.attachmentLabel}</p>`
             : ''
         }
       </div>
     `,
-    text: `Invoice ${input.number}\nTotal: ${formatPrice(input.total)}\nBalance Due: ${formatPrice(input.balanceDue)}\nDue Date: ${dueDate}${input.documentUrl ? `\nDocument: ${input.documentUrl}` : ''}${input.attachmentLabel ? `\nAttachment: ${input.attachmentLabel}` : ''}`
+    text: `Invoice ${input.number}\nTotal: ${formatPrice(input.total)}\nBalance Due: ${formatPrice(input.balanceDue)}\nDue Date: ${dueDate}${input.documentUrl ? `\nDocument: ${input.documentUrl}` : ''}${input.paymentLink ? `\nPayment: ${input.paymentLink}` : ''}${input.attachmentLabel ? `\nAttachment: ${input.attachmentLabel}` : ''}`
   };
 }

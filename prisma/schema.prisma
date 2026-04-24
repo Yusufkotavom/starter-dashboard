@@ -8,6 +8,24 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+model AppSettings {
+  id                   Int      @id @default(1)
+  companyName          String   @default("Open Agency Studio")
+  companyEmail         String   @default("finance@openagency.test")
+  defaultCurrency      String   @default("IDR")
+  invoicePrefix        String   @default("INV")
+  quotationPrefix      String   @default("QUO")
+  paymentTermsDays     Int      @default(14)
+  taxRate              Decimal  @default(11) @db.Decimal(5, 2)
+  requiresApproval     Boolean  @default(true)
+  paymentBankName      String?
+  paymentAccountName   String?
+  paymentAccountNumber String?
+  paymentQrisUrl       String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 // ─── Existing: Product Catalog (unchanged) ───────────────────────────
 
 model Category {
@@ -25,6 +43,8 @@ model Product {
   name         String
   description  String
   type         ProductType @default(PRODUCT)
+  isDigital    Boolean     @default(false)
+  deliveryUrl  String?
   price        Decimal     @db.Decimal(10, 2)
   unit         String      @default("item") // item, hour, project, month, etc.
   photoUrl     String?

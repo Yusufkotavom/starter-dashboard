@@ -19,6 +19,8 @@ export const productSchema = z.object({
   name: z.string().min(2, 'Product name must be at least 2 characters.'),
   category: z.string().min(1, 'Please select a category'),
   type: z.enum(['product', 'service']),
+  isDigital: z.boolean(),
+  deliveryUrl: z.string(),
   price: z.number({ message: 'Price is required' }),
   description: z.string().min(10, 'Description must be at least 10 characters.')
 });
@@ -28,6 +30,8 @@ export type ProductFormValues = {
   name: string;
   category: string;
   type: 'product' | 'service';
+  isDigital: boolean;
+  deliveryUrl: string;
   price: number | undefined;
   description: string;
 };

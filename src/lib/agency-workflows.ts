@@ -12,7 +12,14 @@ function normalizeNumberInput(value?: string | null): string | null {
 
 async function generateRunningNumber(db: DbClient, type: 'quotation' | 'invoice'): Promise<string> {
   const year = new Date().getUTCFullYear();
-  const prefix = type === 'quotation' ? 'QUO' : 'INV';
+  const settings = await db.appSettings.findUnique({
+    where: { id: 1 },
+    select: { invoicePrefix: true, quotationPrefix: true }
+  });
+  const prefix =
+    type === 'quotation'
+      ? settings?.quotationPrefix?.trim().toUpperCase() || 'QUO'
+      : settings?.invoicePrefix?.trim().toUpperCase() || 'INV';
   const pattern = `${prefix}-${year}-`;
   const latest =
     type === 'quotation'

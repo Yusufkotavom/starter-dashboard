@@ -12,9 +12,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteQuotationMutation, sendQuotationMutation } from '../../api/mutations';
+import {
+  approveQuotationMutation,
+  deleteQuotationMutation,
+  markQuotationAsSentMutation,
+  sendQuotationMutation
+} from '../../api/mutations';
 import type { Quotation } from '../../api/types';
 
 interface CellActionProps {
@@ -44,6 +50,23 @@ export function CellAction({ data }: CellActionProps) {
     onError: () => toast.error('Failed to send quotation')
   });
 
+  const markSentMutation = useMutation({
+    ...markQuotationAsSentMutation,
+    onSuccess: () => {
+      toast.success('Quotation marked as sent');
+    },
+    onError: () => toast.error('Failed to mark quotation as sent')
+  });
+
+  const approveMutation = useMutation({
+    ...approveQuotationMutation,
+    onSuccess: (result) => {
+      toast.success(`Quotation approved. Draft invoice ${result.invoiceNumber} created`);
+      router.push(`/dashboard/invoices/${result.invoiceId}`);
+    },
+    onError: () => toast.error('Failed to approve quotation')
+  });
+
   return (
     <>
       <AlertModal
@@ -62,12 +85,27 @@ export function CellAction({ data }: CellActionProps) {
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
+            onClick={() => markSentMutation.mutate(data.id)}
+            disabled={markSentMutation.isPending}
+          >
+            <Icons.check className='mr-2 h-4 w-4' />
+            Mark as Sent
+          </DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() => sendMutation.mutate(data.id)}
             disabled={sendMutation.isPending}
           >
             <Icons.send className='mr-2 h-4 w-4' />
             Send Email
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => approveMutation.mutate(data.id)}
+            disabled={approveMutation.isPending}
+          >
+            <Icons.badgeCheck className='mr-2 h-4 w-4' />
+            Approve + Create Invoice
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
           >

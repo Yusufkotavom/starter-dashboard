@@ -48,8 +48,37 @@ export async function sendInvoice(id: number): Promise<{
   messageId: string;
   status: string;
   documentUrl?: string;
+  paymentLink?: string;
 }> {
   return apiClient(`/invoices/${id}/send`, {
+    method: 'POST'
+  });
+}
+
+export async function markInvoiceAsSent(id: number): Promise<{
+  success: boolean;
+  invoiceId: number;
+  status: string;
+  paymentLink: string;
+  balanceDue: number;
+  instructions?: {
+    bankName: string | null;
+    accountName: string | null;
+    accountNumber: string | null;
+    qrisUrl: string | null;
+  };
+}> {
+  return apiClient(`/invoices/${id}/mark-sent`, {
+    method: 'POST'
+  });
+}
+
+export async function markInvoiceAsPaid(id: number): Promise<{
+  success: boolean;
+  invoiceId: number;
+  paymentId: number | null;
+}> {
+  return apiClient(`/invoices/${id}/mark-paid`, {
     method: 'POST'
   });
 }

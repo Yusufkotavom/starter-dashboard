@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { QuotationStatus } from '@prisma/client';
+import { approveQuotationAndCreateInvoice } from '@/lib/billing-workflows';
 import {
   appendPortalNote,
   formatPortalDateTime,
@@ -57,12 +58,16 @@ export async function POST(request: Request, { params }: PortalQuotationApproval
   await prisma.quotation.update({
     where: { id: quotation.id },
     data: {
-      status: QuotationStatus.APPROVED,
+      status: quotation.status === QuotationStatus.DRAFT ? QuotationStatus.SENT : quotation.status,
       notes: appendPortalNote(quotation.notes, auditNote)
     }
   });
 
+  const result = await approveQuotationAndCreateInvoice(prisma, quotation.id);
+
   return NextResponse.json({
-    message: 'Quotation approval was submitted successfully'
+    message: 'Quotation approval was submitted successfully',
+    invoiceId: result.invoiceId,
+    invoiceNumber: result.invoiceNumber
   });
 }

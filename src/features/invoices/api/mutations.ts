@@ -1,6 +1,13 @@
 import { mutationOptions } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/query-client';
-import { createInvoice, deleteInvoice, sendInvoice, updateInvoice } from './service';
+import {
+  createInvoice,
+  deleteInvoice,
+  markInvoiceAsPaid,
+  markInvoiceAsSent,
+  sendInvoice,
+  updateInvoice
+} from './service';
 import { invoiceKeys } from './queries';
 import type { InvoiceMutationPayload } from './types';
 
@@ -22,5 +29,15 @@ export const deleteInvoiceMutation = mutationOptions({
 
 export const sendInvoiceMutation = mutationOptions({
   mutationFn: (id: number) => sendInvoice(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all })
+});
+
+export const markInvoiceAsSentMutation = mutationOptions({
+  mutationFn: (id: number) => markInvoiceAsSent(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all })
+});
+
+export const markInvoiceAsPaidMutation = mutationOptions({
+  mutationFn: (id: number) => markInvoiceAsPaid(id),
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all })
 });

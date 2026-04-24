@@ -1,6 +1,13 @@
 import { mutationOptions } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/query-client';
-import { createQuotation, deleteQuotation, sendQuotation, updateQuotation } from './service';
+import {
+  approveQuotation,
+  createQuotation,
+  deleteQuotation,
+  markQuotationAsSent,
+  sendQuotation,
+  updateQuotation
+} from './service';
 import { quotationKeys } from './queries';
 import type { QuotationMutationPayload } from './types';
 
@@ -22,5 +29,15 @@ export const deleteQuotationMutation = mutationOptions({
 
 export const sendQuotationMutation = mutationOptions({
   mutationFn: (id: number) => sendQuotation(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: quotationKeys.all })
+});
+
+export const markQuotationAsSentMutation = mutationOptions({
+  mutationFn: (id: number) => markQuotationAsSent(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: quotationKeys.all })
+});
+
+export const approveQuotationMutation = mutationOptions({
+  mutationFn: (id: number) => approveQuotation(id),
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: quotationKeys.all })
 });

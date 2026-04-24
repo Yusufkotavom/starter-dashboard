@@ -12,9 +12,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteInvoiceMutation, sendInvoiceMutation } from '../../api/mutations';
+import {
+  deleteInvoiceMutation,
+  markInvoiceAsPaidMutation,
+  markInvoiceAsSentMutation,
+  sendInvoiceMutation
+} from '../../api/mutations';
 import type { Invoice } from '../../api/types';
 
 interface CellActionProps {
@@ -44,6 +50,25 @@ export function CellAction({ data }: CellActionProps) {
     onError: () => toast.error('Failed to send invoice')
   });
 
+  const markSentMutation = useMutation({
+    ...markInvoiceAsSentMutation,
+    onSuccess: async (result) => {
+      if (result.paymentLink && navigator.clipboard) {
+        await navigator.clipboard.writeText(result.paymentLink);
+      }
+      toast.success('Invoice marked as sent. Payment link copied');
+    },
+    onError: () => toast.error('Failed to mark invoice as sent')
+  });
+
+  const markPaidMutation = useMutation({
+    ...markInvoiceAsPaidMutation,
+    onSuccess: () => {
+      toast.success('Invoice marked as paid and payment recorded');
+    },
+    onError: () => toast.error('Failed to mark invoice as paid')
+  });
+
   return (
     <>
       <AlertModal
@@ -62,12 +87,37 @@ export function CellAction({ data }: CellActionProps) {
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
+            onClick={() => markSentMutation.mutate(data.id)}
+            disabled={markSentMutation.isPending}
+          >
+            <Icons.check className='mr-2 h-4 w-4' />
+            Mark as Sent
+          </DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() => sendMutation.mutate(data.id)}
             disabled={sendMutation.isPending}
           >
             <Icons.send className='mr-2 h-4 w-4' />
             Send Email
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => markPaidMutation.mutate(data.id)}
+            disabled={markPaidMutation.isPending}
+          >
+            <Icons.badgeCheck className='mr-2 h-4 w-4' />
+            Mark as Paid
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={async () => {
+              const paymentLink = `${window.location.origin}/portal/invoices/${data.id}`;
+              await navigator.clipboard.writeText(paymentLink);
+              toast.success('Payment page link copied');
+            }}
+          >
+            <Icons.share className='mr-2 h-4 w-4' />
+            Copy Payment Link
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
           >

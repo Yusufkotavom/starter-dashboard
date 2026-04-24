@@ -1,16 +1,40 @@
 'use client';
 
-import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createProductMutation, updateProductMutation } from '../api/mutations';
-import type { Product } from '../api/types';
+import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import * as z from 'zod';
+import { Icons } from '@/components/icons';
+import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { createProductMutation, updateProductMutation } from '../api/mutations';
+import type { Product } from '../api/types';
 import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
 import { categoryOptions } from '@/features/products/constants/product-options';
+import type { SubscriptionInterval } from '@/features/subscriptions/api/types';
+
+type ProductPlanDraft = NonNullable<Product['subscriptionPlans']>[number];
+
+const intervalOptions: Array<{ value: SubscriptionInterval; label: string }> = [
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'QUARTERLY', label: 'Quarterly' },
+  { value: 'YEARLY', label: 'Yearly' }
+];
+
+function createEmptyPlan(name?: string): ProductPlanDraft {
+  return {
+    name: name ? `${name} Plan` : '',
+    description: '',
+    interval: 'MONTHLY',
+    price: 0,
+    isActive: true,
+    activeSubscriptions: 0
+  };
+}
 
 async function uploadProductImage(file: File): Promise<string> {
   const formData = new FormData();
@@ -38,6 +62,9 @@ export default function ProductForm({
 }) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const [plans, setPlans] = useState<ProductPlanDraft[]>(
+    initialData?.subscriptionPlans?.length ? initialData.subscriptionPlans : []
+  );
 
   const createMutation = useMutation({
     ...createProductMutation,
@@ -67,6 +94,8 @@ export default function ProductForm({
       name: initialData?.name ?? '',
       category: initialData?.category ?? '',
       type: initialData?.type ?? 'product',
+      isDigital: initialData?.isDigital ?? false,
+      deliveryUrl: initialData?.deliveryUrl ?? '',
       price: initialData?.price,
       description: initialData?.description ?? ''
     } as ProductFormValues,
@@ -84,9 +113,12 @@ export default function ProductForm({
         name: value.name,
         category: value.category,
         type: value.type,
+        isDigital: value.isDigital,
+        deliveryUrl: value.deliveryUrl || null,
         price: value.price!,
         description: value.description,
-        photoUrl
+        photoUrl,
+        recurringPlans: plans
       };
 
       if (isEdit) {
@@ -97,8 +129,13 @@ export default function ProductForm({
     }
   });
 
-  const { FormTextField, FormSelectField, FormTextareaField, FormFileUploadField } =
-    useFormFields<ProductFormValues>();
+  const {
+    FormTextField,
+    FormSelectField,
+    FormTextareaField,
+    FormFileUploadField,
+    FormSwitchField
+  } = useFormFields<ProductFormValues>();
 
   return (
     <Card className='mx-auto w-full'>
@@ -140,7 +177,7 @@ export default function ProductForm({
 
               <FormSelectField
                 name='type'
-                label='Item Type'
+                label='Catalog Type'
                 required
                 options={[
                   { label: 'Product', value: 'product' },
@@ -154,7 +191,7 @@ export default function ProductForm({
 
               <FormTextField
                 name='price'
-                label='Price'
+                label='Base Price'
                 required
                 type='number'
                 min={0}
@@ -178,11 +215,203 @@ export default function ProductForm({
               }}
             />
 
+            <div className='grid gap-4 md:grid-cols-2'>
+              <FormSwitchField
+                name='isDigital'
+                label='Digital Delivery'
+                description='Enable this when the product includes a digital asset, portal access, or delivery URL.'
+              />
+              <FormTextField
+                name='deliveryUrl'
+                label='Digital Delivery URL'
+                placeholder='https://...'
+              />
+            </div>
+
+            <div className='space-y-4 rounded-xl border p-4'>
+              <div className='flex items-center justify-between gap-4'>
+                <div>
+                  <div className='font-medium'>Recurring Plans</div>
+                  <div className='text-muted-foreground text-sm'>
+                    Configure subscription plans inside this service/product. Existing plans with
+                    active subscribers will be archived instead of deleted.
+                  </div>
+                </div>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() =>
+                    setPlans((current) => [
+                      ...current,
+                      createEmptyPlan(form.getFieldValue('name') || initialData?.name)
+                    ])
+                  }
+                >
+                  <Icons.add className='mr-2 h-4 w-4' />
+                  Add Plan
+                </Button>
+              </div>
+
+              {plans.length === 0 ? (
+                <div className='text-muted-foreground rounded-lg border border-dashed p-4 text-sm'>
+                  No recurring plans yet. Add one if this item should support retainers or
+                  subscriptions.
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  {plans.map((plan, index) => (
+                    <div
+                      key={plan.id ?? `draft-${index}`}
+                      className='space-y-3 rounded-lg border p-4'
+                    >
+                      <div className='flex items-center justify-between gap-3'>
+                        <div className='flex items-center gap-2'>
+                          <div className='font-medium'>Plan {index + 1}</div>
+                          {plan.id ? <Badge variant='outline'>Existing</Badge> : null}
+                          {plan.activeSubscriptions ? (
+                            <Badge variant='secondary'>
+                              {plan.activeSubscriptions} active subscriptions
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='sm'
+                          onClick={() =>
+                            setPlans((current) =>
+                              current.filter((_, currentIndex) => currentIndex !== index)
+                            )
+                          }
+                        >
+                          <Icons.trash className='mr-2 h-4 w-4' />
+                          Remove
+                        </Button>
+                      </div>
+
+                      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
+                        <div className='space-y-2 xl:col-span-2'>
+                          <label htmlFor={`plan-name-${index}`} className='text-sm font-medium'>
+                            Plan Name
+                          </label>
+                          <input
+                            id={`plan-name-${index}`}
+                            className='border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2'
+                            value={plan.name}
+                            onChange={(event) =>
+                              setPlans((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, name: event.target.value } : item
+                                )
+                              )
+                            }
+                            placeholder='Monthly Retainer'
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <label htmlFor={`plan-interval-${index}`} className='text-sm font-medium'>
+                            Interval
+                          </label>
+                          <select
+                            id={`plan-interval-${index}`}
+                            className='border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2'
+                            value={plan.interval}
+                            onChange={(event) =>
+                              setPlans((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? {
+                                        ...item,
+                                        interval: event.target.value as SubscriptionInterval
+                                      }
+                                    : item
+                                )
+                              )
+                            }
+                          >
+                            {intervalOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className='space-y-2'>
+                          <label htmlFor={`plan-price-${index}`} className='text-sm font-medium'>
+                            Plan Price
+                          </label>
+                          <input
+                            id={`plan-price-${index}`}
+                            className='border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2'
+                            type='number'
+                            min={0}
+                            step='0.01'
+                            value={plan.price}
+                            onChange={(event) =>
+                              setPlans((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, price: Number(event.target.value) || 0 }
+                                    : item
+                                )
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className='grid gap-4 md:grid-cols-[1fr_auto]'>
+                        <div className='space-y-2'>
+                          <label
+                            htmlFor={`plan-description-${index}`}
+                            className='text-sm font-medium'
+                          >
+                            Plan Description
+                          </label>
+                          <textarea
+                            id={`plan-description-${index}`}
+                            className='border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-24 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2'
+                            value={plan.description ?? ''}
+                            onChange={(event) =>
+                              setPlans((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, description: event.target.value }
+                                    : item
+                                )
+                              )
+                            }
+                            placeholder='What is included in this recurring plan?'
+                          />
+                        </div>
+                        <label className='flex items-center gap-3 self-start rounded-lg border px-4 py-3 text-sm'>
+                          <input
+                            type='checkbox'
+                            checked={plan.isActive}
+                            onChange={(event) =>
+                              setPlans((current) =>
+                                current.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, isActive: event.target.checked }
+                                    : item
+                                )
+                              )
+                            }
+                          />
+                          Active Plan
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className='flex justify-end gap-2'>
               <Button type='button' variant='outline' onClick={() => router.back()}>
                 Back
               </Button>
-              <form.SubmitButton>{isEdit ? 'Update Product' : 'Add Product'}</form.SubmitButton>
+              <form.SubmitButton>{isEdit ? 'Update Service' : 'Add Service'}</form.SubmitButton>
             </div>
           </form.Form>
         </form.AppForm>

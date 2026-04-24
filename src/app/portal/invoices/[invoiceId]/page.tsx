@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/app/portal/_components/status-badge';
+import { buildInvoicePaymentLink } from '@/lib/billing-workflows';
 import { formatPortalDate, getPortalInvoiceDocument } from '@/lib/customer-portal';
 import { formatPrice } from '@/lib/utils';
 
@@ -34,6 +36,10 @@ export default async function PortalInvoicePage({ params }: PortalInvoicePagePro
           }
         ]
       : []);
+  const headerStore = await headers();
+  const host = headerStore.get('x-forwarded-host') ?? headerStore.get('host') ?? 'localhost:3000';
+  const protocol = headerStore.get('x-forwarded-proto') ?? 'https';
+  const payment = await buildInvoicePaymentLink(`${protocol}://${host}`, invoice.id);
 
   return (
     <div className='space-y-6'>
@@ -46,6 +52,12 @@ export default async function PortalInvoicePage({ params }: PortalInvoicePagePro
         </div>
         <div className='flex flex-wrap gap-2'>
           <StatusBadge value={invoice.status} />
+          <Link
+            className='inline-flex rounded-lg border px-3 py-2 text-sm font-medium'
+            href={payment.paymentLink}
+          >
+            Pay Invoice
+          </Link>
           <Link
             className='inline-flex rounded-lg border px-3 py-2 text-sm font-medium'
             href={`/portal/invoices/${invoice.id}/download`}
@@ -124,6 +136,85 @@ export default async function PortalInvoicePage({ params }: PortalInvoicePagePro
           </CardContent>
         </Card>
       </div>
+
+      {items.some(
+        (item) => 'product' in item && item.product?.isDigital && item.product.deliveryUrl
+      ) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Digital Access</CardTitle>
+            <CardDescription>
+              Digital products linked to this invoice can be opened from here once the client is
+              ready to access them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-3'>
+            {items
+              .filter(
+                (item) => 'product' in item && item.product?.isDigital && item.product.deliveryUrl
+              )
+              .map((item) => (
+                <div
+                  key={`digital-${item.id}`}
+                  className='flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between'
+                >
+                  <div>
+                    <div className='font-medium'>{item.description}</div>
+                    <div className='text-muted-foreground text-sm'>
+                      {item.product?.name ?? 'Digital product'}
+                    </div>
+                  </div>
+                  <Link
+                    className='inline-flex rounded-lg border px-3 py-2 text-sm font-medium'
+                    href={item.product?.deliveryUrl ?? '#'}
+                    target='_blank'
+                    rel='noreferrer'
+                  >
+                    Open Access
+                  </Link>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Instructions</CardTitle>
+          <CardDescription>
+            Payment stays inside the internal portal and is settled manually via bank transfer or
+            mock QRIS.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='grid gap-4 md:grid-cols-2'>
+          <div className='rounded-xl border p-4'>
+            <div className='text-muted-foreground text-sm'>Payment Link</div>
+            <div className='mt-2 break-all text-sm font-medium'>{payment.paymentLink}</div>
+          </div>
+          <div className='rounded-xl border p-4 text-sm'>
+            <div className='mb-2 font-medium'>Bank Transfer</div>
+            <div className='text-muted-foreground'>
+              Bank: {payment.instructions.bankName ?? '-'}
+            </div>
+            <div className='text-muted-foreground'>
+              Account Name: {payment.instructions.accountName ?? '-'}
+            </div>
+            <div className='text-muted-foreground'>
+              Account Number: {payment.instructions.accountNumber ?? '-'}
+            </div>
+            {payment.instructions.qrisUrl ? (
+              <Link
+                className='mt-3 inline-flex rounded-lg border px-3 py-2 text-sm font-medium'
+                href={payment.instructions.qrisUrl}
+                target='_blank'
+                rel='noreferrer'
+              >
+                Open QRIS
+              </Link>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

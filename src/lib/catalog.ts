@@ -1,9 +1,19 @@
-import type { Prisma, Category as PrismaCategory, Product as PrismaProduct } from '@prisma/client';
+import type {
+  Prisma,
+  Category as PrismaCategory,
+  Product as PrismaProduct,
+  SubscriptionPlan
+} from '@prisma/client';
 import type { Category } from '@/features/categories/api/types';
 import type { Product } from '@/features/products/api/types';
 
 type ProductWithCategory = PrismaProduct & {
   category: PrismaCategory;
+  subscriptionPlans?: (SubscriptionPlan & {
+    _count?: {
+      subscriptions: number;
+    };
+  })[];
 };
 
 type CategoryWithCount = PrismaCategory & {
@@ -34,6 +44,18 @@ export function mapProductRecord(record: ProductWithCategory): Product {
     photo_url: record.photoUrl || '/vercel.svg',
     category: record.category.slug,
     categoryName: record.category.name,
+    isDigital: record.isDigital,
+    deliveryUrl: record.deliveryUrl,
+    activePlanCount: (record.subscriptionPlans ?? []).filter((plan) => plan.isActive).length,
+    subscriptionPlans: (record.subscriptionPlans ?? []).map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description,
+      interval: plan.interval,
+      price: Number(plan.price),
+      isActive: plan.isActive,
+      activeSubscriptions: plan._count?.subscriptions ?? 0
+    })),
     created_at: record.createdAt.toISOString(),
     updated_at: record.updatedAt.toISOString()
   };

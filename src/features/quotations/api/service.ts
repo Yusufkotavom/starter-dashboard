@@ -61,3 +61,25 @@ export async function sendQuotation(id: number): Promise<{
     method: 'POST'
   });
 }
+
+export async function markQuotationAsSent(id: number): Promise<{
+  success: boolean;
+  quotationId: number;
+  status: string;
+}> {
+  return apiClient(`/quotations/${id}/mark-sent`, {
+    method: 'POST'
+  });
+}
+
+export async function approveQuotation(id: number): Promise<{
+  success: boolean;
+  quotationId: number;
+  quotationNumber: string;
+  invoiceId: number;
+  invoiceNumber: string;
+}> {
+  return apiClient(`/quotations/${id}/approve`, {
+    method: 'POST'
+  });
+}
