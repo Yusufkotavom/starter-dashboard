@@ -1,4 +1,10 @@
-export type SubscriptionInterval = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+export type SubscriptionInterval =
+  | 'ONE_TIME'
+  | 'LIFETIME'
+  | 'WEEKLY'
+  | 'MONTHLY'
+  | 'QUARTERLY'
+  | 'YEARLY';
 export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'EXPIRED';
 
 export interface SubscriptionPlan {

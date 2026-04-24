@@ -272,6 +272,8 @@ model ClientSubscription {
 }
 
 enum SubscriptionInterval {
+  ONE_TIME
+  LIFETIME
   WEEKLY
   MONTHLY
   QUARTERLY

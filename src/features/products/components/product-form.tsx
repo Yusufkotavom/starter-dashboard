@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import * as z from 'zod';
@@ -10,15 +10,17 @@ import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { categoriesQueryOptions } from '@/features/categories/api/queries';
 import { createProductMutation, updateProductMutation } from '../api/mutations';
 import type { Product } from '../api/types';
 import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
-import { categoryOptions } from '@/features/products/constants/product-options';
 import type { SubscriptionInterval } from '@/features/subscriptions/api/types';
 
 type ProductPlanDraft = NonNullable<Product['subscriptionPlans']>[number];
 
 const intervalOptions: Array<{ value: SubscriptionInterval; label: string }> = [
+  { value: 'ONE_TIME', label: 'One Time' },
+  { value: 'LIFETIME', label: 'Lifetime' },
   { value: 'WEEKLY', label: 'Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
   { value: 'QUARTERLY', label: 'Quarterly' },
@@ -62,9 +64,14 @@ export default function ProductForm({
 }) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const { data: categoryData } = useSuspenseQuery(categoriesQueryOptions({ page: 1, limit: 1000 }));
   const [plans, setPlans] = useState<ProductPlanDraft[]>(
     initialData?.subscriptionPlans?.length ? initialData.subscriptionPlans : []
   );
+  const categoryOptions = categoryData.categories.map((category) => ({
+    value: category.slug,
+    label: category.name
+  }));
 
   const createMutation = useMutation({
     ...createProductMutation,

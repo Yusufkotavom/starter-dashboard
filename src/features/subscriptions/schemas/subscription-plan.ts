@@ -6,7 +6,7 @@ export const subscriptionPlanSchema = z.object({
   description: z.string().nullable(),
   serviceId: z.number().nullable(),
   price: z.number().positive('Price must be greater than zero'),
-  interval: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
+  interval: z.enum(['ONE_TIME', 'LIFETIME', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
   isActive: z.boolean()
 });
 

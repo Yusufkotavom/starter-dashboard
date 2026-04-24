@@ -5,6 +5,23 @@ import type { QuotationMutationPayload } from '@/features/quotations/api/types';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
+export function isDocumentNumberConflict(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== 'P2002') {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes('number');
+  }
+
+  return typeof target === 'string' && target.includes('number');
+}
+
 function normalizeNumberInput(value?: string | null): string | null {
   const normalized = value?.trim();
   return normalized ? normalized : null;

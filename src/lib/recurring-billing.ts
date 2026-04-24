@@ -4,12 +4,18 @@ import {
   SubscriptionStatus,
   type Prisma
 } from '@prisma/client';
+import { isDocumentNumberConflict } from '@/lib/agency-workflows';
+import { getAppSettings } from '@/lib/app-settings';
 import { prisma } from '@/lib/prisma';
 
 type DbClient = typeof prisma | Prisma.TransactionClient;
 
 function addInterval(date: Date, interval: SubscriptionInterval): Date {
   const next = new Date(date);
+
+  if (interval === SubscriptionInterval.ONE_TIME || interval === SubscriptionInterval.LIFETIME) {
+    return next;
+  }
 
   if (interval === SubscriptionInterval.WEEKLY) {
     next.setUTCDate(next.getUTCDate() + 7);
@@ -32,7 +38,8 @@ function addInterval(date: Date, interval: SubscriptionInterval): Date {
 
 async function generateInvoiceNumber(db: DbClient): Promise<string> {
   const year = new Date().getUTCFullYear();
-  const prefix = `INV-${year}-`;
+  const settings = await getAppSettings();
+  const prefix = `${settings.invoicePrefix}-${year}-`;
   const latest = await db.invoice.findFirst({
     where: { number: { startsWith: prefix } },
     orderBy: { number: 'desc' },
@@ -59,7 +66,12 @@ export async function runRecurringInvoiceBilling(
   const dueSubscriptions = await db.clientSubscription.findMany({
     where: {
       status: SubscriptionStatus.ACTIVE,
-      nextBillingDate: { lte: runDate }
+      nextBillingDate: { lte: runDate },
+      plan: {
+        interval: {
+          notIn: [SubscriptionInterval.ONE_TIME, SubscriptionInterval.LIFETIME]
+        }
+      }
     },
     include: {
       client: true,
@@ -91,22 +103,32 @@ export async function runRecurringInvoiceBilling(
     }
 
     const total = subscription.priceOverride ?? subscription.plan.price;
-    const invoiceNumber = await generateInvoiceNumber(db);
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const invoiceNumber = await generateInvoiceNumber(db);
 
-    await db.invoice.create({
-      data: {
-        number: invoiceNumber,
-        clientId: subscription.clientId,
-        projectId: subscription.projectId,
-        subscriptionId: subscription.id,
-        status: InvoiceStatus.SENT,
-        subtotal: total,
-        tax: 0,
-        total,
-        dueDate: currentBillingDate,
-        notes: `${subscription.plan.name} recurring billing`
+        await db.invoice.create({
+          data: {
+            number: invoiceNumber,
+            clientId: subscription.clientId,
+            projectId: subscription.projectId,
+            subscriptionId: subscription.id,
+            status: InvoiceStatus.SENT,
+            subtotal: total,
+            tax: 0,
+            total,
+            dueDate: currentBillingDate,
+            notes: `${subscription.plan.name} recurring billing`
+          }
+        });
+
+        break;
+      } catch (error) {
+        if (!isDocumentNumberConflict(error) || attempt === 4) {
+          throw error;
+        }
       }
-    });
+    }
 
     await db.clientSubscription.update({
       where: { id: subscription.id },

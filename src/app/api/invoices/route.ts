@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { buildInvoiceOrderBy, mapInvoiceRecord } from '@/lib/agency';
-import { buildInvoiceDocument } from '@/lib/agency-workflows';
+import { buildInvoiceDocument, isDocumentNumberConflict } from '@/lib/agency-workflows';
 import type { InvoiceMutationPayload } from '@/features/invoices/api/types';
 
 export async function GET(request: NextRequest) {
@@ -47,8 +47,30 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as InvoiceMutationPayload;
-  const created = await prisma.invoice.create({
-    data: await buildInvoiceDocument(prisma, body),
+
+  let createdId: number | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const created = await prisma.invoice.create({
+        data: await buildInvoiceDocument(prisma, body),
+        select: { id: true }
+      });
+      createdId = created.id;
+      break;
+    } catch (error) {
+      if (!isDocumentNumberConflict(error) || attempt === 4) {
+        throw error;
+      }
+    }
+  }
+
+  if (!createdId) {
+    return NextResponse.json({ message: 'Failed to create invoice' }, { status: 500 });
+  }
+
+  const created = await prisma.invoice.findUniqueOrThrow({
+    where: { id: createdId },
     include: { client: true, project: true, payments: { select: { amount: true } } }
   });
 

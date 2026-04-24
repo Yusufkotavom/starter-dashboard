@@ -37,6 +37,10 @@ function calculateNextBillingDate(startDate: string, interval: string): string |
     return null;
   }
 
+  if (interval === 'ONE_TIME' || interval === 'LIFETIME') {
+    return null;
+  }
+
   if (interval === 'WEEKLY') {
     const base = new Date(`${startDate}T00:00:00.000Z`);
     base.setUTCDate(base.getUTCDate() + 7);

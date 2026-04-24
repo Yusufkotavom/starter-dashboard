@@ -1,5 +1,5 @@
 import { InvoiceStatus, QuotationStatus, Prisma, type PrismaClient } from '@prisma/client';
-import { buildInvoiceDocument } from '@/lib/agency-workflows';
+import { buildInvoiceDocument, isDocumentNumberConflict } from '@/lib/agency-workflows';
 import { getAppSettings } from '@/lib/app-settings';
 import { prisma } from '@/lib/prisma';
 import {
@@ -134,23 +134,43 @@ export async function approveQuotationAndCreateInvoice(
       };
     }
 
-    const invoice = await tx.invoice.create({
-      data: await buildInvoiceDocument(tx, {
-        clientId: quotation.clientId,
-        projectId: quotation.project?.id ?? null,
-        status: InvoiceStatus.DRAFT,
-        total: Number(quotation.total),
-        dueDate: (await createDefaultDueDate()).toISOString(),
-        notes: appendNote(
-          quotation.notes,
-          `Auto-generated draft invoice from approved quotation.\n${sourceTag}`
-        )
-      }),
-      select: {
-        id: true,
-        number: true
+    const invoicePayload = {
+      clientId: quotation.clientId,
+      projectId: quotation.project?.id ?? null,
+      status: InvoiceStatus.DRAFT,
+      total: Number(quotation.total),
+      dueDate: (await createDefaultDueDate()).toISOString(),
+      notes: appendNote(
+        quotation.notes,
+        `Auto-generated draft invoice from approved quotation.\n${sourceTag}`
+      )
+    };
+
+    let invoice: {
+      id: number;
+      number: string;
+    } | null = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        invoice = await tx.invoice.create({
+          data: await buildInvoiceDocument(tx, invoicePayload),
+          select: {
+            id: true,
+            number: true
+          }
+        });
+        break;
+      } catch (error) {
+        if (!isDocumentNumberConflict(error) || attempt === 4) {
+          throw error;
+        }
       }
-    });
+    }
+
+    if (!invoice) {
+      throw new Error('INVOICE_CREATE_FAILED');
+    }
 
     return {
       quotationId: quotation.id,

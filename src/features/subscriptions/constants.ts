@@ -1,4 +1,6 @@
 export const SUBSCRIPTION_INTERVAL_OPTIONS = [
+  { value: 'ONE_TIME', label: 'One Time' },
+  { value: 'LIFETIME', label: 'Lifetime' },
   { value: 'WEEKLY', label: 'Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
   { value: 'QUARTERLY', label: 'Quarterly' },

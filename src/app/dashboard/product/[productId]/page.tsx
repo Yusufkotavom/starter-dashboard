@@ -2,6 +2,7 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getQueryClient } from '@/lib/query-client';
 import { productByIdOptions } from '@/features/products/api/queries';
+import { categoriesQueryOptions } from '@/features/categories/api/queries';
 import PageContainer from '@/components/layout/page-container';
 import ProductViewPage from '@/features/products/components/product-view-page';
 import { buttonVariants } from '@/components/ui/button';
@@ -17,6 +18,7 @@ type PageProps = { params: Promise<{ productId: string }> };
 export default async function Page(props: PageProps) {
   const params = await props.params;
   const queryClient = getQueryClient();
+  void queryClient.prefetchQuery(categoriesQueryOptions({ page: 1, limit: 1000 }));
 
   if (params.productId !== 'new') {
     void queryClient.prefetchQuery(productByIdOptions(Number(params.productId)));
