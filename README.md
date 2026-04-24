@@ -1,8 +1,8 @@
 # Modular Admin Dashboard Starter
 
-> Next.js 16 · shadcn/ui · Tailwind CSS v4 · Prisma · Supabase · Clerk · TypeScript
+> Next.js 16 · shadcn/ui · Tailwind CSS v4 · Prisma · PostgreSQL · Clerk · TypeScript
 
-A production-ready, **fully modular** admin dashboard starter. Every domain module can be toggled on/off or removed entirely — making this a single codebase that scales from a simple CRUD panel to a full multi-tenant SaaS.
+A production-ready, **fully modular** admin dashboard starter built for service businesses, internal operations, and customer-facing SaaS workflows. It starts as a clean dashboard shell, then scales into CRM, quotation, invoicing, portal, recurring billing, and messaging flows without coupling the shell to one business domain.
 
 ---
 
@@ -15,21 +15,23 @@ Core Shell (always present)
   └── Dashboard layout, auth, navigation, theme, RBAC
 
 Domain Modules (optional)
-  ├── Products & Categories  ← enabled by default (seeded in DB)
-  ├── Users                  ← enabled by default
-  ├── Kanban                 ← enabled, removable
-  ├── Chat                   ← enabled, removable
-  ├── Notifications          ← enabled, removable
-  └── Examples / Elements    ← enabled, removable
+  ├── Clients & Team
+  ├── Services & Service Types
+  ├── Quotations
+  ├── Projects
+  ├── Invoices, Payments, Expenses
+  ├── Customer Portal
+  ├── Communications / WhatsApp
+  └── Reports & Settings
 ```
 
 Each module has three possible states:
 
-| State | What it means |
-|-------|--------------|
-| `enabled` | Route, nav item, and feature code are all active |
+| State      | What it means                                             |
+| ---------- | --------------------------------------------------------- |
+| `enabled`  | Route, nav item, and feature code are all active          |
 | `disabled` | Code exists, but hidden from navigation (feature-flagged) |
-| `removed` | Permanently deleted from the codebase |
+| `removed`  | Permanently deleted from the codebase                     |
 
 Use `scripts/cleanup.js` to transition modules between states.
 
@@ -37,22 +39,22 @@ Use `scripts/cleanup.js` to transition modules between states.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5.7 (strict) |
-| Styling | Tailwind CSS v4 |
-| UI Components | shadcn/ui (Radix primitives) |
-| Database | PostgreSQL via Supabase |
-| ORM | Prisma |
-| Auth | Clerk (orgs, billing, RBAC) |
-| Data Fetching | TanStack React Query v5 |
-| Tables | TanStack Table |
-| Forms | TanStack Form + Zod |
-| State | Zustand (UI state), nuqs (URL state) |
-| Charts | Recharts |
-| Error Tracking | Sentry (optional) |
-| Package Manager | Bun (preferred) |
+| Layer           | Technology                           |
+| --------------- | ------------------------------------ |
+| Framework       | Next.js 16 (App Router)              |
+| Language        | TypeScript 5.7 (strict)              |
+| Styling         | Tailwind CSS v4                      |
+| UI Components   | shadcn/ui (Radix primitives)         |
+| Database        | PostgreSQL via Supabase              |
+| ORM             | Prisma                               |
+| Auth            | Clerk (orgs, billing, RBAC)          |
+| Data Fetching   | TanStack React Query v5              |
+| Tables          | TanStack Table                       |
+| Forms           | TanStack Form + Zod                  |
+| State           | Zustand (UI state), nuqs (URL state) |
+| Charts          | Recharts                             |
+| Error Tracking  | Sentry (optional)                    |
+| Package Manager | Bun (preferred)                      |
 
 ---
 
@@ -65,14 +67,16 @@ Use `scripts/cleanup.js` to transition modules between states.
 - ℹ️ **Infobar component** — contextual help panel on any page
 - 🛠️ **Builder CLI** — `scripts/cleanup.js` for enabling/disabling/removing modules
 
-## Features (Domain Modules — enabled by default)
+## Features (Agency / SaaS Modules)
 
-- 📦 **Products & Categories** — full CRUD with Prisma-backed data (real DB), data table, form
-- 👥 **Users** — user management table with search, filter, pagination
-- 📊 **Analytics overview** — cards and charts with parallel routes
-- 🗂️ **Kanban** — drag-and-drop task board (dnd-kit + Zustand)
-- 💬 **Chat** — messaging UI with conversation list and composer
-- 🔔 **Notifications** — notification center with bell badge and full page
+- 🧾 **CRM + sales flow** — clients, quotations, projects, invoices, payments, expenses
+- 📦 **Service catalog** — products/services with recurring plans and digital delivery metadata
+- 🔁 **Recurring billing** — subscription-capable plans, client subscriptions, recurring invoice cron flow
+- 💳 **Internal payment flow** — manual bank transfer, mock QRIS, payment proof upload, invoice state sync
+- 👤 **Customer portal** — customers can review quotations, projects, invoices, subscriptions, and digital access
+- 📄 **Document flow** — quotation/invoice print views, PDF endpoints, email and WhatsApp delivery actions
+- 💬 **Communications inbox** — WhatsApp-ready inbox, attach thread to client, send quotation/invoice via channel
+- 📊 **Operations overview** — agency KPIs, pipeline, outstanding invoices, recent payments, project status
 
 ---
 
@@ -80,32 +84,47 @@ Use `scripts/cleanup.js` to transition modules between states.
 
 ```
 src/
-├── app/dashboard/          # Route pages per module
-│   ├── overview/           # Analytics (parallel routes)
-│   ├── product/            # Product CRUD pages
-│   ├── categories/         # Category management
-│   ├── users/              # Users table
-│   ├── kanban/             # Task board
-│   ├── chat/               # Messaging
-│   ├── notifications/      # Notification center
+├── app/dashboard/          # Internal app routes
+│   ├── overview/           # KPI overview
+│   ├── clients/            # CRM
+│   ├── product/            # Services / products
+│   ├── categories/         # Service types
+│   ├── quotations/         # Quotations
+│   ├── projects/           # Projects
+│   ├── invoices/           # Invoices
+│   ├── payments/           # Payments
+│   ├── expenses/           # Expenses
+│   ├── communications/     # WhatsApp inbox and thread views
+│   ├── reports/            # Reporting
+│   ├── settings/           # Company setup
 │   ├── workspaces/         # Org management (Clerk)
 │   ├── billing/            # Billing (Clerk)
 │   └── profile/            # User profile (Clerk)
 │
+├── app/portal/             # Customer-facing portal
+│   ├── invoices/           # Invoice payment pages
+│   ├── quotations/         # Quotation review pages
+│   ├── subscriptions/      # Subscription list
+│   └── digital-access/     # Access to digital products
+│
 ├── features/               # Domain modules (feature-based)
 │   ├── overview/           # Analytics components
-│   ├── products/           # Product listing, form, table, API layer
+│   ├── products/           # Service catalog + embedded recurring plans
+│   ├── clients/            # CRM
+│   ├── quotations/         # Sales documents
+│   ├── projects/           # Delivery operations
+│   ├── invoices/           # Billing
+│   ├── payments/           # Payment recording
+│   ├── expenses/           # Cost tracking
+│   ├── communications/     # Inbox, thread, attach/send actions
 │   │   ├── api/
 │   │   │   ├── types.ts    # Response shapes, filter types, payloads
-│   │   │   ├── service.ts  # Data access (swap this file for your backend)
+│   │   │   ├── service.ts  # Data access layer
 │   │   │   └── queries.ts  # React Query options + key factories
 │   │   ├── components/     # Listing, form, table, cell actions
 │   │   └── schemas/        # Zod schemas
-│   ├── categories/         # Category management (same pattern)
-│   ├── users/              # User management (same pattern)
-│   ├── kanban/             # Kanban board (Zustand + dnd-kit)
-│   ├── chat/               # Messaging UI
-│   ├── notifications/      # Notification store + page
+│   ├── reports/            # Reporting UI
+│   ├── settings/           # Company setup form
 │   ├── auth/               # Auth edge components
 │   └── profile/            # Profile form
 │
@@ -125,7 +144,7 @@ src/
 └── types/                  # NavItem, NavGroup, etc.
 
 prisma/
-├── schema.prisma           # PostgreSQL schema (Category, Product)
+├── schema.prisma           # PostgreSQL schema for agency + portal flows
 └── seed.mjs                # Initial seed data
 
 scripts/
@@ -154,7 +173,7 @@ cp env.example.txt .env.local
 Required variables — see `env.example.txt` for the full list:
 
 ```env
-# Database (Supabase PostgreSQL)
+# Database (PostgreSQL / Supabase / Neon)
 DATABASE_URL="postgresql://..."
 DIRECT_URL="postgresql://..."
 
@@ -176,7 +195,7 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
 
 ```bash
 bun run db:push      # Push schema to PostgreSQL
-bun run db:seed      # Seed initial categories and products
+bun run db:seed      # Seed service catalog, clients, quotations, invoices, portal data
 ```
 
 ### 4. Run
@@ -211,17 +230,53 @@ node scripts/cleanup.js --list
 
 **Available modules:**
 
-| Module | Default State | Description |
-|--------|:---:|---|
-| `clerk` | enabled | Auth, orgs, billing, profile |
-| `kanban` | enabled | Drag-and-drop task board |
-| `chat` | enabled | Messaging UI |
-| `notifications` | enabled | Notification center |
-| `examples` | enabled | Forms, React Query demo, Icons |
-| `themes` | enabled | Extra themes (keep one) |
-| `sentry` | enabled | Error tracking |
+| Module          | Default State | Description                    |
+| --------------- | :-----------: | ------------------------------ |
+| `clerk`         |    enabled    | Auth, orgs, billing, profile   |
+| `kanban`        |    enabled    | Drag-and-drop task board       |
+| `chat`          |    enabled    | Internal chat demo             |
+| `notifications` |    enabled    | Notification center            |
+| `examples`      |    enabled    | Forms, React Query demo, Icons |
+| `themes`        |    enabled    | Extra themes (keep one)        |
+| `sentry`        |    enabled    | Error tracking                 |
 
 After removing all desired modules, delete `scripts/cleanup.js` — the dev server message auto-cleans on next start.
+
+---
+
+## Business Flow Included
+
+The current starter already includes a practical business flow:
+
+1. Create or manage a client
+2. Create a quotation from service catalog items
+3. Approve quotation into a project and draft invoice
+4. Send invoice by email or WhatsApp
+5. Let customer open the portal payment page
+6. Record payment and sync invoice status
+7. Run recurring billing for subscription-capable service plans
+
+This keeps the shell modular, but gives the repo a real working baseline instead of demo-only CRUD.
+
+---
+
+## WhatsApp and Communications
+
+The repo now includes a communications module designed for WhatsApp-first operations:
+
+- `Client.phone` is the standard phone field
+- inbox route: `/dashboard/communications`
+- send quotation via WhatsApp
+- send invoice via WhatsApp
+- webhook endpoint for inbound bridge events
+- manual attach conversation to client
+
+Provider options in `Settings`:
+
+- `EMULATOR` — safe local testing, logs payloads
+- `BRIDGE` — connect your own WhatsApp Web / Baileys bridge service
+
+This keeps the dashboard modular: the shell does not depend on one WhatsApp provider, only on the communication abstraction.
 
 ---
 
@@ -245,10 +300,23 @@ To connect to a real backend, only `service.ts` needs to change.
 
 ## Database
 
-Schema lives in `prisma/schema.prisma`. Current models:
+Schema lives in `prisma/schema.prisma`. Core operational models include:
 
-- **Category** — `id`, `name`, `slug`, `description`, `products[]`
-- **Product** — `id`, `name`, `description`, `type` (PRODUCT | SERVICE), `price`, `photoUrl`, `categorySlug`
+- `Category`
+- `Product`
+- `Client`
+- `Quotation`
+- `QuotationItem`
+- `Project`
+- `Invoice`
+- `Payment`
+- `Expense`
+- `SubscriptionPlan`
+- `ClientSubscription`
+- `Conversation`
+- `MessageLog`
+- `AppSettings`
+- `DocumentSequence`
 
 ```bash
 bun run db:generate   # Regenerate Prisma client
@@ -281,7 +349,7 @@ docker run -d -p 3000:3000 \
 ### Vercel
 
 1. Connect repo to Vercel
-2. Add all `NEXT_PUBLIC_*` and `DATABASE_URL` env vars in dashboard
+2. Add all `NEXT_PUBLIC_*`, Clerk, database, and storage env vars
 3. Deploy
 
 ---
