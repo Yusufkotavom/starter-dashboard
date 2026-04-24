@@ -2,14 +2,71 @@ import PageContainer from '@/components/layout/page-container';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardAction,
-  CardFooter
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
+import { fakeClients } from '@/constants/mock-api-clients';
+import { fakeProjects } from '@/constants/mock-api-projects';
+import { fakeQuotations } from '@/constants/mock-api-quotations';
+import { fakeInvoices } from '@/constants/mock-api-invoices';
+import { fakePayments } from '@/constants/mock-api-payments';
+import { fakeExpenses } from '@/constants/mock-api-expenses';
+import { formatPrice } from '@/lib/utils';
 import React from 'react';
+
+function buildKpis() {
+  const activeProjects = fakeProjects.records.filter((item) => item.status === 'ACTIVE').length;
+  const openLeads = fakeClients.records.filter((item) => item.status === 'LEAD').length;
+  const approvedPipeline = fakeQuotations.records
+    .filter((item) => item.status === 'APPROVED')
+    .reduce((sum, item) => sum + item.total, 0);
+  const outstandingInvoices = fakeInvoices.records
+    .filter(
+      (item) => item.status === 'SENT' || item.status === 'PARTIAL' || item.status === 'OVERDUE'
+    )
+    .reduce((sum, item) => sum + item.total, 0);
+  const cashIn = fakePayments.records.reduce((sum, item) => sum + item.amount, 0);
+  const costOut = fakeExpenses.records.reduce((sum, item) => sum + item.amount, 0);
+
+  return [
+    {
+      title: 'Approved Pipeline',
+      value: formatPrice(approvedPipeline),
+      badge: '+Sales',
+      icon: Icons.trendingUp,
+      body: 'Commercial value already approved and ready to execute.',
+      footer: `${openLeads} open leads still waiting to convert`
+    },
+    {
+      title: 'Active Projects',
+      value: String(activeProjects),
+      badge: 'Delivery',
+      icon: Icons.kanban,
+      body: 'Current agency workload that the team is actively delivering.',
+      footer: `${fakeProjects.records.length} total tracked projects`
+    },
+    {
+      title: 'Outstanding Invoices',
+      value: formatPrice(outstandingInvoices),
+      badge: 'Finance',
+      icon: Icons.billing,
+      body: 'Receivables still pending collection from client billing.',
+      footer: `${fakeInvoices.records.filter((item) => item.status === 'OVERDUE').length} overdue invoices need follow-up`
+    },
+    {
+      title: 'Gross Spread',
+      value: formatPrice(cashIn - costOut),
+      badge: 'Cashflow',
+      icon: Icons.trendingDown,
+      body: 'Recorded cash-in minus operational and delivery-related cost out.',
+      footer: `${formatPrice(cashIn)} in payments vs ${formatPrice(costOut)} in expenses`
+    }
+  ];
+}
 
 export default function OverViewLayout({
   sales,
@@ -22,101 +79,49 @@ export default function OverViewLayout({
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
 }) {
+  const kpis = buildKpis();
+
   return (
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-2'>
         <div className='flex items-center justify-between'>
-          <h2 className='text-2xl font-bold tracking-tight'>Hi, Welcome back 👋</h2>
+          <div>
+            <h2 className='text-2xl font-bold tracking-tight'>Agency Overview</h2>
+            <p className='text-muted-foreground'>
+              Lead pipeline, project delivery, and finance snapshot in one place.
+            </p>
+          </div>
         </div>
 
         <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs md:grid-cols-2 lg:grid-cols-4'>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Total Revenue</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                $1,250.00
-              </CardTitle>
-              <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +12.5%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Trending up this month <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Visitors for the last 6 months</div>
-            </CardFooter>
-          </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>New Customers</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                1,234
-              </CardTitle>
-              <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingDown />
-                  -20%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Down 20% this period <Icons.trendingDown className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Acquisition needs attention</div>
-            </CardFooter>
-          </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Active Accounts</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                45,678
-              </CardTitle>
-              <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +12.5%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Strong user retention <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Engagement exceed targets</div>
-            </CardFooter>
-          </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Growth Rate</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                4.5%
-              </CardTitle>
-              <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +4.5%
-                </Badge>
-              </CardAction>
-            </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Steady performance increase <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Meets growth projections</div>
-            </CardFooter>
-          </Card>
+          {kpis.map((kpi) => {
+            const Icon = kpi.icon;
+
+            return (
+              <Card key={kpi.title} className='@container/card'>
+                <CardHeader>
+                  <CardDescription>{kpi.title}</CardDescription>
+                  <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
+                    {kpi.value}
+                  </CardTitle>
+                  <CardAction>
+                    <Badge variant='outline'>
+                      <Icon />
+                      {kpi.badge}
+                    </Badge>
+                  </CardAction>
+                </CardHeader>
+                <CardFooter className='flex-col items-start gap-1.5 text-sm'>
+                  <div className='line-clamp-2 flex gap-2 font-medium'>{kpi.body}</div>
+                  <div className='text-muted-foreground'>{kpi.footer}</div>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
           <div className='col-span-4'>{bar_stats}</div>
-          <div className='col-span-4 md:col-span-3'>
-            {/* sales arallel routes */}
-            {sales}
-          </div>
+          <div className='col-span-4 md:col-span-3'>{sales}</div>
           <div className='col-span-4'>{area_stats}</div>
           <div className='col-span-4 min-h-0 md:col-span-3'>{pie_stats}</div>
         </div>

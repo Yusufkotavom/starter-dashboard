@@ -1,90 +1,38 @@
-'use client';
-
-import { LabelList, Pie, PieChart } from 'recharts';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@/components/ui/chart';
-import { Badge } from '@/components/ui/badge';
-import { Icons } from '@/components/icons';
-
-const chartData = [
-  { browser: 'chrome', visitors: 275, fill: 'var(--color-chrome)' },
-  { browser: 'safari', visitors: 200, fill: 'var(--color-safari)' },
-  { browser: 'firefox', visitors: 187, fill: 'var(--color-firefox)' },
-  { browser: 'edge', visitors: 173, fill: 'var(--color-edge)' },
-  { browser: 'other', visitors: 90, fill: 'var(--color-other)' }
-];
-
-const chartConfig = {
-  visitors: {
-    label: 'Visitors'
-  },
-  chrome: {
-    label: 'Chrome',
-    color: 'var(--chart-1)'
-  },
-  safari: {
-    label: 'Safari',
-    color: 'var(--chart-2)'
-  },
-  firefox: {
-    label: 'Firefox',
-    color: 'var(--chart-3)'
-  },
-  edge: {
-    label: 'Edge',
-    color: 'var(--chart-4)'
-  },
-  other: {
-    label: 'Other',
-    color: 'var(--chart-5)'
-  }
-} satisfies ChartConfig;
+import { fakeInvoices } from '@/constants/mock-api-invoices';
 
 export function PieGraph() {
+  const statusBreakdown = ['DRAFT', 'SENT', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'].map(
+    (status) => ({
+      status,
+      count: fakeInvoices.records.filter((item) => item.status === status).length
+    })
+  );
+  const total = statusBreakdown.reduce((sum, item) => sum + item.count, 0) || 1;
+
   return (
     <Card className='flex h-full flex-col'>
-      <CardHeader className='items-center pb-0'>
-        <CardTitle>
-          Pie Chart
-          <Badge variant='outline'>
-            <Icons.trendingUp />
-            +5.2%
-          </Badge>
-        </CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+      <CardHeader className='pb-0'>
+        <CardTitle>Invoice Status Distribution</CardTitle>
+        <CardDescription>How current billing records are distributed.</CardDescription>
       </CardHeader>
-      <CardContent className='flex flex-1 items-center justify-center pb-0'>
-        <ChartContainer
-          config={chartConfig}
-          className='[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[300px] min-h-[250px]'
-        >
-          <PieChart>
-            <ChartTooltip content={<ChartTooltipContent nameKey='visitors' hideLabel />} />
-            <Pie
-              data={chartData}
-              innerRadius={30}
-              dataKey='visitors'
-              radius={10}
-              cornerRadius={8}
-              paddingAngle={4}
-            >
-              <LabelList
-                dataKey='visitors'
-                stroke='none'
-                fontSize={12}
-                fontWeight={500}
-                fill='currentColor'
-                formatter={(value: number) => value.toString()}
+      <CardContent className='flex flex-1 flex-col justify-center gap-4 pb-0'>
+        {statusBreakdown.map((item) => (
+          <div key={item.status} className='space-y-2'>
+            <div className='flex items-center justify-between text-sm'>
+              <span className='font-medium'>{item.status}</span>
+              <span className='text-muted-foreground'>
+                {item.count} invoices ({Math.round((item.count / total) * 100)}%)
+              </span>
+            </div>
+            <div className='bg-muted h-2 rounded-full'>
+              <div
+                className='bg-primary h-2 rounded-full'
+                style={{ width: `${(item.count / total) * 100}%` }}
               />
-            </Pie>
-          </PieChart>
-        </ChartContainer>
+            </div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

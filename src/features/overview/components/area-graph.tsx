@@ -1,116 +1,54 @@
-'use client';
-
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@/components/ui/chart';
-import { Badge } from '@/components/ui/badge';
-import { Icons } from '@/components/icons';
-import React from 'react';
-
-const chartData = [
-  { month: 'January', desktop: 342, mobile: 245 },
-  { month: 'February', desktop: 876, mobile: 654 },
-  { month: 'March', desktop: 512, mobile: 387 },
-  { month: 'April', desktop: 629, mobile: 521 },
-  { month: 'May', desktop: 458, mobile: 412 },
-  { month: 'June', desktop: 781, mobile: 598 },
-  { month: 'July', desktop: 394, mobile: 312 },
-  { month: 'August', desktop: 925, mobile: 743 },
-  { month: 'September', desktop: 647, mobile: 489 },
-  { month: 'October', desktop: 532, mobile: 476 },
-  { month: 'November', desktop: 803, mobile: 687 },
-  { month: 'December', desktop: 271, mobile: 198 }
-];
-
-const chartConfig = {
-  desktop: {
-    label: 'Desktop',
-    color: 'var(--chart-1)'
-  },
-  mobile: {
-    label: 'Mobile',
-    color: 'var(--chart-2)'
-  }
-} satisfies ChartConfig;
+import { fakeQuotations } from '@/constants/mock-api-quotations';
+import { fakeInvoices } from '@/constants/mock-api-invoices';
+import { formatPrice } from '@/lib/utils';
 
 export function AreaGraph() {
+  const approvedPipeline = fakeQuotations.records
+    .filter((item) => item.status === 'APPROVED')
+    .reduce((sum, item) => sum + item.total, 0);
+  const sentPipeline = fakeQuotations.records
+    .filter((item) => item.status === 'SENT')
+    .reduce((sum, item) => sum + item.total, 0);
+  const receivables = fakeInvoices.records
+    .filter(
+      (item) => item.status === 'SENT' || item.status === 'PARTIAL' || item.status === 'OVERDUE'
+    )
+    .reduce((sum, item) => sum + item.total, 0);
+
+  const rows = [
+    {
+      label: 'Approved quotations',
+      value: formatPrice(approvedPipeline),
+      caption: 'Ready to convert or already feeding delivery.'
+    },
+    {
+      label: 'Sent quotations',
+      value: formatPrice(sentPipeline),
+      caption: 'Pipeline waiting on client decision.'
+    },
+    {
+      label: 'Outstanding receivables',
+      value: formatPrice(receivables),
+      caption: 'Invoice value still pending collection.'
+    }
+  ];
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          Dotted Area Chart
-          <Badge variant='outline'>
-            <Icons.trendingUp />
-            -5.2%
-          </Badge>
-        </CardTitle>
-        <CardDescription>Showing total visitors for the last 6 months</CardDescription>
+        <CardTitle>Pipeline Health</CardTitle>
+        <CardDescription>Commercial flow from proposal to billed work.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart accessibilityLayer data={chartData}>
-            <CartesianGrid vertical={false} strokeDasharray='3 3' />
-            <XAxis
-              dataKey='month'
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <defs>
-              <DottedBackgroundPattern config={chartConfig} />
-            </defs>
-            <Area
-              dataKey='mobile'
-              type='natural'
-              fill='url(#dotted-background-pattern-mobile)'
-              fillOpacity={0.4}
-              stroke='var(--color-mobile)'
-              stackId='a'
-              strokeWidth={0.8}
-            />
-            <Area
-              dataKey='desktop'
-              type='natural'
-              fill='url(#dotted-background-pattern-desktop)'
-              fillOpacity={0.4}
-              stroke='var(--color-desktop)'
-              stackId='a'
-              strokeWidth={0.8}
-            />
-          </AreaChart>
-        </ChartContainer>
+      <CardContent className='space-y-4'>
+        {rows.map((row) => (
+          <div key={row.label} className='rounded-lg border p-4'>
+            <div className='text-muted-foreground text-sm'>{row.label}</div>
+            <div className='mt-1 text-2xl font-semibold'>{row.value}</div>
+            <div className='text-muted-foreground mt-1 text-sm'>{row.caption}</div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
 }
-
-const DottedBackgroundPattern = ({ config }: { config: ChartConfig }) => {
-  const items = Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [key, value.color])
-  );
-  return (
-    <>
-      {Object.entries(items).map(([key, value]) => (
-        <pattern
-          key={key}
-          id={`dotted-background-pattern-${key}`}
-          x='0'
-          y='0'
-          width='7'
-          height='7'
-          patternUnits='userSpaceOnUse'
-        >
-          <circle cx='5' cy='5' r='1.5' fill={value} opacity={0.5}></circle>
-        </pattern>
-      ))}
-    </>
-  );
-};
