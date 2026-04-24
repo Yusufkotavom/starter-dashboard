@@ -1022,34 +1022,43 @@ export const THEMES = [
 
 function showHelp() {
   console.log(`
-🧹 Feature Cleanup Tool
+🧩 Module Manager — Modular Dashboard Starter
+
+Module States:
+  enabled   Route, nav, and code are all active (default)
+  disabled  Code preserved, hidden from navigation (--disable)
+  removed   Files permanently deleted from codebase (default remove)
 
 Usage:
-  node scripts/cleanup.js [features...]
+  node scripts/cleanup.js [modules...]          # REMOVE modules permanently
+  node scripts/cleanup.js --disable [modules...] # DISABLE modules (hide from nav)
   node scripts/cleanup.js --interactive
 
 Examples:
-  node scripts/cleanup.js clerk
-  node scripts/cleanup.js kanban chat       # remove multiple at once
-  node scripts/cleanup.js --interactive     # interactive mode
-  node scripts/cleanup.js --dry-run kanban  # preview without changing files
-  node scripts/cleanup.js --all             # remove all optional features
+  node scripts/cleanup.js kanban                # remove kanban permanently
+  node scripts/cleanup.js kanban chat           # remove multiple at once
+  node scripts/cleanup.js --disable kanban      # hide kanban from nav only
+  node scripts/cleanup.js --disable kanban chat # disable multiple
+  node scripts/cleanup.js --interactive         # interactive mode
+  node scripts/cleanup.js --dry-run kanban      # preview without modifying files
+  node scripts/cleanup.js --all                 # remove all optional modules
   node scripts/cleanup.js --list
   node scripts/cleanup.js --help
 
 Flags:
-  --interactive   Select features via interactive prompts
+  --disable       Hide module from navigation (code stays, route still accessible)
+  --interactive   Select modules via interactive prompts
   --dry-run       Show what would be changed without modifying any files
   --force         Skip git safety check (not recommended)
-  --all           Remove all optional features
-  --list          List available features
+  --all           Remove all optional modules
+  --list          List available modules
   --help          Show this help
 
 Safety:
   Before running, the script checks for a git repo with at least one commit
   so you can revert (git restore .) if needed. Use --force to skip this check.
 
-Available features:
+Available modules:
 ${Object.entries(FEATURES)
   .map(([key, value]) => `  - ${key.padEnd(18)} ${value.name}`)
   .join('\n')}
@@ -1057,15 +1066,38 @@ ${Object.entries(FEATURES)
 }
 
 function listFeatures() {
-  console.log('\n📦 Available features:\n');
+  console.log('\n🧩 Available modules:\n');
+  console.log('  States:');
+  console.log('    enabled   → visible in nav, code active');
+  console.log('    disabled  → hidden from nav, code preserved (use --disable)');
+  console.log('    removed   → permanently deleted (default remove)\n');
   for (const [key, value] of Object.entries(FEATURES)) {
-    console.log(`  ${key}`);
-    console.log(`    ${value.name}`);
-    if (value.folders?.length) console.log(`    Folders: ${value.folders.length}`);
-    if (value.files?.length) console.log(`    Files: ${value.files.length}`);
-    if (value.dependencies?.length) console.log(`    Dependencies: ${value.dependencies.length}`);
+    const exists =
+      value.folders?.some((f) => {
+        try {
+          return require('fs').existsSync(require('path').join(ROOT, f));
+        } catch (_) {
+          return false;
+        }
+      }) ??
+      value.files?.some((f) => {
+        try {
+          return require('fs').existsSync(require('path').join(ROOT, f));
+        } catch (_) {
+          return false;
+        }
+      }) ??
+      true;
+    const state = exists ? 'enabled/disabled' : 'removed';
+    console.log(`  ${key.padEnd(18)} ${value.name}`);
+    console.log(`    ${'Code status:'.padEnd(16)} ${state}`);
+    if (value.navItemsToRemove?.length)
+      console.log(`    ${'Nav items:'.padEnd(16)} ${value.navItemsToRemove.join(', ')}`);
     console.log('');
   }
+  console.log(
+    '  Note: Use --disable to hide from nav. Use remove (default) to delete code.\n'
+  );
 }
 
 async function runInteractive(options = {}) {
@@ -1106,11 +1138,118 @@ async function runInteractive(options = {}) {
   await cleanup.cleanup();
 }
 
+// ─── Disable Engine (hide from nav, keep code) ──────────────────────
+
+function disableModules(moduleNames, options = {}) {
+  const dryRun = options.dryRun === true;
+  const navPath = path.join(ROOT, 'src/config/nav-config.ts');
+
+  if (!fs.existsSync(navPath)) {
+    console.error('  ❌ nav-config.ts not found');
+    return;
+  }
+
+  const log = (msg) => console.log(dryRun ? `  [dry-run] ${msg}` : `  ${msg}`);
+
+  console.log(
+    dryRun
+      ? '🔍 Dry run — showing what would change (no files modified)\n'
+      : '🙈 Disabling modules (hiding from navigation)...\n'
+  );
+
+  const allNavUrls = [];
+  for (const name of moduleNames) {
+    const feature = FEATURES[name];
+    if (!feature) {
+      console.log(`  ⚠️  Unknown module: ${name}`);
+      continue;
+    }
+    if (!feature.navItemsToRemove?.length) {
+      console.log(`  ⚠️  Module '${name}' has no nav items to disable`);
+      continue;
+    }
+    console.log(`\n📦 Disabling: ${feature.name}`);
+    allNavUrls.push(...feature.navItemsToRemove);
+  }
+
+  if (allNavUrls.length === 0) return;
+
+  // Instead of deleting nav items, add visible: () => false to each
+  let content = fs.readFileSync(navPath, 'utf8');
+  let modified = false;
+
+  for (const url of allNavUrls) {
+    // Find each object containing this url and inject visible: () => false if not already there
+    let idx;
+    let searchFrom = 0;
+    while ((idx = content.indexOf(`'${url}'`, searchFrom)) !== -1) {
+      // Walk back to find opening brace
+      let start = idx;
+      let depth = 0;
+      while (start > 0) {
+        start--;
+        if (content[start] === '}') depth++;
+        if (content[start] === '{') {
+          if (depth === 0) break;
+          depth--;
+        }
+      }
+      // Walk forward to find closing brace
+      let end = idx;
+      depth = 0;
+      while (end < content.length) {
+        if (content[end] === '{') depth++;
+        if (content[end] === '}') {
+          depth--;
+          if (depth < 0) {
+            end++;
+            break;
+          }
+        }
+        end++;
+      }
+
+      const objSlice = content.slice(start, end);
+      if (!objSlice.includes('visible:')) {
+        // Inject before closing brace
+        const insertAt = end - 1;
+        const insertion = `,\n        visible: () => false // disabled`;
+        if (!dryRun) {
+          content = content.slice(0, insertAt) + insertion + content.slice(insertAt);
+        }
+        log(`✅ Disabled nav item: ${url}`);
+        modified = true;
+        // Adjust searchFrom past the (now-longer) object
+        searchFrom = end + (dryRun ? 0 : insertion.length);
+      } else {
+        log(`⏭  Already has visible flag: ${url}`);
+        searchFrom = end;
+      }
+    }
+  }
+
+  if (modified && !dryRun) {
+    fs.writeFileSync(navPath, content, 'utf8');
+  }
+
+  if (dryRun) {
+    console.log('\n🔍 Dry run complete — no files were modified.\n');
+  } else {
+    console.log('\n✨ Done! Modules are now hidden from the sidebar and kbar.');
+    console.log('   Routes remain accessible via direct URL.');
+    console.log('   To re-enable: set visible: () => true (or remove the flag).');
+    console.log('   To remove code entirely: run without --disable flag.\n');
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const force = args.includes('--force');
   const dryRun = args.includes('--dry-run');
-  const filteredArgs = args.filter((a) => a !== '--force' && a !== '--dry-run');
+  const disableMode = args.includes('--disable');
+  const filteredArgs = args.filter(
+    (a) => a !== '--force' && a !== '--dry-run' && a !== '--disable'
+  );
 
   if (filteredArgs.length === 0 || filteredArgs.includes('--help')) {
     showHelp();
@@ -1138,8 +1277,16 @@ async function main() {
     return;
   }
 
-  const features = filteredArgs.filter((a) => !a.startsWith('-'));
-  const cleanup = new FeatureCleanup(features, { force, dryRun });
+  const modules = filteredArgs.filter((a) => !a.startsWith('-'));
+
+  if (disableMode) {
+    // Disable mode: hide from nav, preserve code
+    disableModules(modules, { dryRun });
+    return;
+  }
+
+  // Default: remove permanently
+  const cleanup = new FeatureCleanup(modules, { force, dryRun });
   await cleanup.cleanup();
 }
 

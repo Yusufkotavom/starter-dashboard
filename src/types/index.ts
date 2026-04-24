@@ -20,6 +20,8 @@ export interface NavItem {
   isActive?: boolean;
   items?: NavItem[];
   access?: PermissionCheck;
+  /** Return false to hide from nav without removing the item (module disabled state) */
+  visible?: () => boolean;
 }
 
 export interface NavGroup {

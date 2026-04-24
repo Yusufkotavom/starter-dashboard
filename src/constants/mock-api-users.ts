@@ -19,6 +19,10 @@ export type User = {
   updated_at: string;
 };
 
+function getUserSortValue(user: User, key: string): unknown {
+  return user[key as keyof User];
+}
+
 // Mock user data store
 export const fakeUsers = {
   records: [] as User[],
@@ -154,10 +158,8 @@ export const fakeUsers = {
           const { id, desc } = sortItems[0];
           allUsers.sort((a, b) => {
             // Handle computed 'name' column
-            const aVal =
-              id === 'name' ? `${a.first_name} ${a.last_name}` : (a as Record<string, unknown>)[id];
-            const bVal =
-              id === 'name' ? `${b.first_name} ${b.last_name}` : (b as Record<string, unknown>)[id];
+            const aVal = id === 'name' ? `${a.first_name} ${a.last_name}` : getUserSortValue(a, id);
+            const bVal = id === 'name' ? `${b.first_name} ${b.last_name}` : getUserSortValue(b, id);
             if (typeof aVal === 'number' && typeof bVal === 'number') {
               return desc ? bVal - aVal : aVal - bVal;
             }

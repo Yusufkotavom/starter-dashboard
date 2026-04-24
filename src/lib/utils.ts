@@ -22,3 +22,11 @@ export function formatBytes(
     sizeType === 'accurate' ? (accurateSizes[i] ?? 'Bytest') : (sizes[i] ?? 'Bytes')
   }`;
 }
+
+export function formatPrice(value: number, locale = 'id-ID', currency = 'IDR') {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0
+  }).format(value);
+}

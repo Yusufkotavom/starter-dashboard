@@ -1,6 +1,6 @@
 export const categoryOptions = [
-  { value: 'beauty', label: 'Beauty Products' },
+  { value: 'beauty', label: 'Beauty' },
   { value: 'electronics', label: 'Electronics' },
-  { value: 'home', label: 'Home & Garden' },
-  { value: 'sports', label: 'Sports & Outdoors' }
+  { value: 'home-garden', label: 'Home & Garden' },
+  { value: 'services', label: 'Services' }
 ];

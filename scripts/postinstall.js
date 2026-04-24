@@ -30,12 +30,12 @@ const c = {
   yel: '\x1b[33m',
   grn: '\x1b[32m',
   wht: '\x1b[37m',
-  bgCyan: '\x1b[46m\x1b[30m'
+  blue: '\x1b[34m'
 };
 
 // ── Box drawing (ANSI-safe padding) ─────────────────────────────────
 
-const W = 64;
+const W = 66;
 const strip = (s) => s.replace(/\x1b\[[0-9;]*m/g, '');
 const pad = (s, w) => s + ' '.repeat(Math.max(0, w - strip(s).length));
 const row = (text = '') => `${c.d}│${c.r} ${pad(text, W - 4)} ${c.d}│${c.r}`;
@@ -49,24 +49,33 @@ const msg = [
   '',
   top,
   row(),
-  row(`${c.b}${c.mag}  ✦  Shadcn Dashboard Starter${c.r}`),
-  row(`${c.d}     Feature Cleanup Available${c.r}`),
+  row(`${c.b}${c.mag}  🧩  Modular Dashboard Starter${c.r}`),
+  row(`${c.d}     Domain modules: enabled · disabled · removed${c.r}`),
   row(),
   div,
   row(),
-  row(`${c.wht}Trim optional features to fit your project:${c.r}`),
+  row(`${c.wht}Manage optional modules:${c.r}`),
   row(),
-  row(`  ${c.yel}$${c.r} ${c.b}node scripts/cleanup.js --interactive${c.r}`),
+  row(`  ${c.yel}$${c.r} ${c.b}node scripts/cleanup.js --list${c.r}              ${c.d}# see all modules${c.r}`),
+  row(`  ${c.yel}$${c.r} ${c.b}node scripts/cleanup.js --interactive${c.r}        ${c.d}# guided setup${c.r}`),
+  row(`  ${c.yel}$${c.r} ${c.b}node scripts/cleanup.js --disable kanban${c.r}     ${c.d}# hide from nav${c.r}`),
+  row(`  ${c.yel}$${c.r} ${c.b}node scripts/cleanup.js kanban${c.r}               ${c.d}# remove code${c.r}`),
   row(),
-  row(`${c.d}Available modules:${c.r}`),
+  row(`${c.d}Module states:${c.r}`),
   row(
-    `  ${c.cyan}clerk${c.d} · ${c.cyan}kanban${c.d} · ${c.cyan}chat${c.d} · ${c.cyan}notifications${c.d} · ${c.cyan}themes${c.d} · ${c.cyan}sentry${c.r}`
+    `  ${c.grn}enabled${c.d}   visible in nav, code active${c.r}`
+  ),
+  row(
+    `  ${c.yel}disabled${c.d}  hidden from nav, files preserved${c.r}`
+  ),
+  row(
+    `  ${c.d}removed   permanently deleted from codebase${c.r}`
   ),
   row(),
   div,
   row(),
   row(`${c.grn}--dry-run${c.r}  ${c.d}Preview changes without modifying files${c.r}`),
-  row(`${c.grn}--list${c.r}     ${c.d}Show all removable features${c.r}`),
+  row(`${c.grn}--list${c.r}     ${c.d}Show all modules + states${c.r}`),
   row(`${c.grn}--help${c.r}     ${c.d}See all options${c.r}`),
   row(),
   row(`${c.d}Delete ${c.wht}scripts/cleanup.js${c.d} to remove this message.${c.r}`),

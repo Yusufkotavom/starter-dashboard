@@ -8,7 +8,7 @@ declare module '@tanstack/react-table' {
     label?: string;
     placeholder?: string;
     variant?: FilterVariant;
-    options?: Option[];
+    options?: ReadonlyArray<Option>;
     range?: [number, number];
     unit?: string;
     icon?: React.FC<React.SVGProps<SVGSVGElement>>;

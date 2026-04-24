@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Existing: Product Catalog (unchanged) ───────────────────────────
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id           Int         @id @default(autoincrement())
+  name         String
+  description  String
+  type         ProductType @default(PRODUCT)
+  price        Decimal     @db.Decimal(10, 2)
+  unit         String      @default("item") // item, hour, project, month, etc.
+  photoUrl     String?
+  categorySlug String
+  category     Category    @relation(fields: [categorySlug], references: [slug], onDelete: Restrict, onUpdate: Cascade)
+  quotationItems QuotationItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([categorySlug])
+}
+
+enum ProductType {
+  PRODUCT
+  SERVICE
+}
+
+// ─── CRM ────────────────────────────────────────────────────────────
+
+model Client {
+  id         Int          @id @default(autoincrement())
+  name       String
+  email      String       @unique
+  phone      String?
+  company    String?
+  address    String?
+  status     ClientStatus @default(LEAD)
+  notes      String?
+  quotations Quotation[]
+  projects   Project[]
+  invoices   Invoice[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+enum ClientStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+// ─── Quotations ─────────────────────────────────────────────────────
+
+model Quotation {
+  id         Int             @id @default(autoincrement())
+  number     String          @unique
+  clientId   Int
+  client     Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  status     QuotationStatus @default(DRAFT)
+  subtotal   Decimal         @default(0) @db.Decimal(15, 2)
+  tax        Decimal         @default(0) @db.Decimal(15, 2)
+  discount   Decimal         @default(0) @db.Decimal(15, 2)
+  total      Decimal         @default(0) @db.Decimal(15, 2)
+  validUntil DateTime?
+  notes      String?
+  items      QuotationItem[]
+  project    Project?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([clientId])
+}
+
+model QuotationItem {
+  id          Int       @id @default(autoincrement())
+  quotationId Int
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  description String
+  qty         Decimal   @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal   @db.Decimal(15, 2)
+  amount      Decimal   @db.Decimal(15, 2)
+  createdAt   DateTime  @default(now())
+
+  @@index([quotationId])
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// ─── Projects ───────────────────────────────────────────────────────
+
+model Project {
+  id          Int           @id @default(autoincrement())
+  name        String
+  clientId    Int
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  quotationId Int?          @unique
+  quotation   Quotation?    @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Decimal?      @db.Decimal(15, 2)
+  notes       String?
+  invoices    Invoice[]
+  expenses    Expense[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([clientId])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+// ─── Finance ────────────────────────────────────────────────────────
+
+model Invoice {
+  id        Int           @id @default(autoincrement())
+  number    String        @unique
+  clientId  Int
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  projectId Int?
+  project   Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  status    InvoiceStatus @default(DRAFT)
+  subtotal  Decimal       @default(0) @db.Decimal(15, 2)
+  tax       Decimal       @default(0) @db.Decimal(15, 2)
+  total     Decimal       @default(0) @db.Decimal(15, 2)
+  dueDate   DateTime?
+  paidAt    DateTime?
+  notes     String?
+  payments  Payment[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([projectId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  invoiceId Int
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(15, 2)
+  method    String?  // transfer, cash, qris, credit
+  reference String?
+  paidAt    DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  projectId   Int?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  category    String   // vendor, freelancer, tools, operational
+  vendor      String?
+  description String
+  amount      Decimal  @db.Decimal(15, 2)
+  date        DateTime
+  receiptUrl  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}

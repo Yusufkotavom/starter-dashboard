@@ -49,6 +49,7 @@ export default function ProductForm({
       image: undefined,
       name: initialData?.name ?? '',
       category: initialData?.category ?? '',
+      type: initialData?.type ?? 'product',
       price: initialData?.price,
       description: initialData?.description ?? ''
     } as ProductFormValues,
@@ -59,6 +60,7 @@ export default function ProductForm({
       const payload = {
         name: value.name,
         category: value.category,
+        type: value.type,
         price: value.price!,
         description: value.description
       };
@@ -109,6 +111,20 @@ export default function ProductForm({
                 placeholder='Select category'
                 validators={{
                   onBlur: z.string().min(1, 'Please select a category')
+                }}
+              />
+
+              <FormSelectField
+                name='type'
+                label='Item Type'
+                required
+                options={[
+                  { label: 'Product', value: 'product' },
+                  { label: 'Service', value: 'service' }
+                ]}
+                placeholder='Select type'
+                validators={{
+                  onBlur: z.enum(['product', 'service'])
                 }}
               />
 

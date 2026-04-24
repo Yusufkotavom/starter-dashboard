@@ -167,48 +167,48 @@ export const billingInfoContent: InfobarContent = {
 };
 
 export const productInfoContent: InfobarContent = {
-  title: 'Product Management',
+  title: 'Service Catalog',
   sections: [
     {
       title: 'Overview',
       description:
-        'The Products page allows you to manage your product catalog. You can view all products in a table format with server-side functionality including sorting, filtering, pagination, and search capabilities. Use the "Add New" button to create new products.',
+        'The Service Catalog page manages the services your agency offers. Use it to keep pricing, scope, and reusable catalog entries consistent across quotations and future invoicing workflows.',
       links: [
         {
-          title: 'Product Management Guide',
+          title: 'Service Catalog Guide',
           url: '#'
         }
       ]
     },
     {
-      title: 'Adding Products',
+      title: 'Adding Services',
       description:
-        'To add a new product, click the "Add New" button in the page header. You will be taken to a form where you can enter product details including name, description, price, category, and upload product images.',
+        'Create services with a clear name, category, price, and delivery unit such as project, month, or hour. These entries are intended to become reusable quotation line items.',
       links: [
         {
-          title: 'Adding Products Documentation',
+          title: 'Service Creation Notes',
           url: '#'
         }
       ]
     },
     {
-      title: 'Editing Products',
+      title: 'Catalog Consistency',
       description:
-        'You can edit existing products by clicking on a product row in the table. This will open the product edit form where you can modify any product information. Changes are saved automatically when you submit the form.',
+        'Keep naming, pricing, and categorization stable so downstream quotation and reporting modules can rely on the same service definitions.',
       links: [
         {
-          title: 'Editing Products Guide',
+          title: 'Catalog Governance',
           url: '#'
         }
       ]
     },
     {
-      title: 'Deleting Products',
+      title: 'Real Agency Usage',
       description:
-        'Products can be deleted from the product listing table. Click the delete action for the product you want to remove. You will be asked to confirm the deletion before the product is permanently removed from your catalog.',
+        'Use service records for offerings like website builds, SEO retainers, consulting sessions, or support packages. This keeps the starter aligned with an agency workflow rather than a retail catalog.',
       links: [
         {
-          title: 'Product Deletion Policy',
+          title: 'Service Catalog Policy',
           url: '#'
         }
       ]
@@ -238,6 +238,24 @@ export const productInfoContent: InfobarContent = {
           url: '#'
         }
       ]
+    }
+  ]
+};
+
+export const categoryInfoContent: InfobarContent = {
+  title: 'Service Types',
+  sections: [
+    {
+      title: 'Overview',
+      description:
+        'Service Types manage the taxonomy for your service catalog. Use them to group offerings like design, development, marketing, consulting, or support.',
+      links: []
+    },
+    {
+      title: 'How It Works',
+      description:
+        'Each service type stores a name, slug, and optional description. Catalog items reference the slug so labels can evolve without breaking service relationships.',
+      links: []
     }
   ]
 };

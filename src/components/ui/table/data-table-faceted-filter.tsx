@@ -24,7 +24,7 @@ import { CheckIcon } from '@radix-ui/react-icons';
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;
   title?: string;
-  options: Option[];
+  options: ReadonlyArray<Option>;
   multiple?: boolean;
 }
 

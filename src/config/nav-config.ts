@@ -6,32 +6,16 @@ import { NavGroup } from '@/types';
  * This configuration is used for both the sidebar navigation and Cmd+K bar.
  * Items are organized into groups, each rendered with a SidebarGroupLabel.
  *
- * RBAC Access Control:
- * Each navigation item can have an `access` property that controls visibility
- * based on permissions, plans, features, roles, and organization context.
+ * Agency Dashboard — Module States:
+ *   enabled  → visible in nav (default)
+ *   disabled → add `visible: () => false` to hide from nav (code preserved)
+ *   removed  → deleted via `node scripts/cleanup.js <module>`
  *
- * Examples:
- *
- * 1. Require organization:
- *    access: { requireOrg: true }
- *
- * 2. Require specific permission:
- *    access: { requireOrg: true, permission: 'org:teams:manage' }
- *
- * 3. Require specific plan:
- *    access: { plan: 'pro' }
- *
- * 4. Require specific feature:
- *    access: { feature: 'premium_access' }
- *
- * 5. Require specific role:
- *    access: { role: 'admin' }
- *
- * 6. Multiple conditions (all must be true):
- *    access: { requireOrg: true, permission: 'org:teams:manage', plan: 'pro' }
- *
- * Note: The `visible` function is deprecated but still supported for backward compatibility.
- * Use the `access` property for new items.
+ * RBAC Access Control (access property):
+ *   access: { requireOrg: true }              — requires active Clerk org
+ *   access: { permission: 'org:x:manage' }    — requires permission
+ *   access: { plan: 'pro' }                   — requires subscription plan
+ *   access: { role: 'admin' }                 — requires role
  */
 export const navGroups: NavGroup[] = [
   {
@@ -53,144 +37,181 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Teams',
+        title: 'Workspace Team',
         url: '/dashboard/workspaces/team',
         icon: 'teams',
         isActive: false,
         items: [],
         access: { requireOrg: true }
-      },
+      }
+    ]
+  },
+  {
+    label: 'CRM',
+    items: [
       {
-        title: 'Product',
-        url: '/dashboard/product',
+        title: 'Clients',
+        url: '/dashboard/clients',
+        icon: 'user',
+        shortcut: ['c', 'l'],
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: 'Services',
+    items: [
+      {
+        title: 'Service Catalog',
+        url: '#',
         icon: 'product',
-        shortcut: ['p', 'p'],
+        shortcut: ['s', 'c'],
+        isActive: false,
+        items: [
+          {
+            title: 'All Services',
+            url: '/dashboard/product',
+            icon: 'product'
+          },
+          {
+            title: 'Add Service',
+            url: '/dashboard/product/new',
+            icon: 'add'
+          },
+          {
+            title: 'Service Types',
+            url: '/dashboard/categories',
+            icon: 'forms'
+          }
+        ]
+      },
+      {
+        title: 'Quotations',
+        url: '/dashboard/quotations',
+        icon: 'page',
+        shortcut: ['q', 'q'],
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: 'Projects',
+    items: [
+      {
+        title: 'All Projects',
+        url: '/dashboard/projects',
+        icon: 'kanban',
+        shortcut: ['p', 'j'],
         isActive: false,
         items: []
       },
       {
-        title: 'Users',
-        url: '/dashboard/users',
-        icon: 'teams',
-        shortcut: ['u', 'u'],
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Kanban',
+        title: 'Task Board',
         url: '/dashboard/kanban',
         icon: 'kanban',
         shortcut: ['k', 'k'],
         isActive: false,
+        items: [],
+        visible: () => false
+      },
+      {
+        title: 'Team',
+        url: '/dashboard/users',
+        icon: 'teams',
+        shortcut: ['t', 'm'],
+        isActive: false,
         items: []
+      }
+    ]
+  },
+  {
+    label: 'Finance',
+    items: [
+      {
+        title: 'Invoices',
+        url: '/dashboard/invoices',
+        icon: 'billing',
+        shortcut: ['i', 'v'],
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Payments',
+        url: '/dashboard/payments',
+        icon: 'billing',
+        shortcut: ['p', 'y'],
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Expenses',
+        url: '/dashboard/expenses',
+        icon: 'trendingDown',
+        shortcut: ['e', 'x'],
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: 'Reports',
+    items: [
+      {
+        title: 'Reports',
+        url: '/dashboard/reports',
+        icon: 'trendingUp',
+        shortcut: ['r', 'p'],
+        isActive: false,
+        items: []
+      }
+    ]
+  },
+  {
+    label: 'Account',
+    items: [
+      {
+        title: 'Settings',
+        url: '/dashboard/settings',
+        icon: 'settings',
+        shortcut: ['s', 't'],
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Profile',
+        url: '/dashboard/profile',
+        icon: 'profile',
+        shortcut: ['m', 'm'],
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Notifications',
+        url: '/dashboard/notifications',
+        icon: 'notification',
+        shortcut: ['n', 'n'],
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Billing',
+        url: '/dashboard/billing',
+        icon: 'billing',
+        shortcut: ['b', 'b'],
+        isActive: false,
+        items: [],
+        access: { requireOrg: true }
       },
       {
         title: 'Chat',
         url: '/dashboard/chat',
         icon: 'chat',
-        shortcut: ['c', 'c'],
+        shortcut: ['c', 'h'],
         isActive: false,
-        items: []
-      }
-    ]
-  },
-  {
-    label: 'Elements',
-    items: [
-      {
-        title: 'Forms',
-        url: '#',
-        icon: 'forms',
-        isActive: true,
-        items: [
-          {
-            title: 'Basic Form',
-            url: '/dashboard/forms/basic',
-            icon: 'forms',
-            shortcut: ['f', 'f']
-          },
-          {
-            title: 'Multi-Step Form',
-            url: '/dashboard/forms/multi-step',
-            icon: 'forms'
-          },
-          {
-            title: 'Sheet & Dialog',
-            url: '/dashboard/forms/sheet-form',
-            icon: 'forms'
-          },
-          {
-            title: 'Advanced Patterns',
-            url: '/dashboard/forms/advanced',
-            icon: 'forms'
-          }
-        ]
-      },
-      {
-        title: 'React Query',
-        url: '/dashboard/react-query',
-        icon: 'code',
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Icons',
-        url: '/dashboard/elements/icons',
-        icon: 'palette',
-        isActive: false,
-        items: []
-      }
-    ]
-  },
-  {
-    label: '',
-    items: [
-      {
-        title: 'Pro',
-        url: '#',
-        icon: 'pro',
-        isActive: true,
-        items: [
-          {
-            title: 'Exclusive',
-            url: '/dashboard/exclusive',
-            icon: 'exclusive',
-            shortcut: ['e', 'e']
-          }
-        ]
-      },
-      {
-        title: 'Account',
-        url: '#',
-        icon: 'account',
-        isActive: true,
-        items: [
-          {
-            title: 'Profile',
-            url: '/dashboard/profile',
-            icon: 'profile',
-            shortcut: ['m', 'm']
-          },
-          {
-            title: 'Notifications',
-            url: '/dashboard/notifications',
-            icon: 'notification',
-            shortcut: ['n', 'n']
-          },
-          {
-            title: 'Billing',
-            url: '/dashboard/billing',
-            icon: 'billing',
-            shortcut: ['b', 'b'],
-            access: { requireOrg: true }
-          },
-          {
-            title: 'Login',
-            shortcut: ['l', 'l'],
-            url: '/',
-            icon: 'login'
-          }
-        ]
+        items: [],
+        visible: () => false // disabled — re-enable when internal messaging is needed
       }
     ]
   }

@@ -17,13 +17,13 @@ import {
   createFormField
 } from '@/components/ui/form-context';
 
-type Option = { value: string; label: string };
+type Option = { value: string | number; label: string };
 
 interface SelectFieldProps {
   label: string;
   description?: string;
   required?: boolean;
-  options: Option[];
+  options: ReadonlyArray<Option>;
   placeholder?: string;
 }
 
@@ -37,7 +37,9 @@ export function SelectField({
   const field = useFieldContext();
   const isTouched = useStore(field.store, (s) => s.meta.isTouched);
   const isValid = useStore(field.store, (s) => s.meta.isValid);
-  const value = useStore(field.store, (s) => s.value) as string;
+  const value = useStore(field.store, (s) => s.value) as string | number | null | undefined;
+  const normalizedValue =
+    value === undefined || value === null || value === '' ? undefined : String(value);
 
   return (
     <FormFieldSet>
@@ -47,8 +49,11 @@ export function SelectField({
           {required && ' *'}
         </FieldLabel>
         <Select
-          value={value}
-          onValueChange={field.handleChange}
+          value={normalizedValue}
+          onValueChange={(nextValue) => {
+            const matchedOption = options.find((option) => String(option.value) === nextValue);
+            field.handleChange(matchedOption?.value ?? nextValue);
+          }}
           onOpenChange={(open) => {
             if (!open) field.handleBlur();
           }}
@@ -58,7 +63,7 @@ export function SelectField({
           </SelectTrigger>
           <SelectContent>
             {options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={String(opt.value)} value={String(opt.value)}>
                 {opt.label}
               </SelectItem>
             ))}

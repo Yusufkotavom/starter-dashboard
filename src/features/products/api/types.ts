@@ -1,33 +1,45 @@
-export type { Product } from '@/constants/mock-api';
+export interface Product {
+  id: number;
+  photo_url: string;
+  name: string;
+  description: string;
+  created_at: string;
+  price: number;
+  category: string;
+  categoryName: string;
+  type: 'product' | 'service';
+  updated_at: string;
+}
 
-export type ProductFilters = {
+export interface ProductFilters {
   page?: number;
   limit?: number;
   categories?: string;
   search?: string;
   sort?: string;
-};
+}
 
-export type ProductsResponse = {
+export interface ProductsResponse {
   success: boolean;
   time: string;
   message: string;
   total_products: number;
   offset: number;
   limit: number;
-  products: import('@/constants/mock-api').Product[];
-};
+  products: Product[];
+}
 
-export type ProductByIdResponse = {
+export interface ProductByIdResponse {
   success: boolean;
   time: string;
   message: string;
-  product: import('@/constants/mock-api').Product;
-};
+  product: Product;
+}
 
-export type ProductMutationPayload = {
+export interface ProductMutationPayload {
   name: string;
   category: string;
+  type: 'product' | 'service';
   price: number;
   description: string;
-};
+}

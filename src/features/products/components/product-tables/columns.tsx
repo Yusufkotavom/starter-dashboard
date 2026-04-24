@@ -48,14 +48,10 @@ export const columns: ColumnDef<Product>[] = [
     header: ({ column }: { column: Column<Product, unknown> }) => (
       <DataTableColumnHeader column={column} title='Category' />
     ),
-    cell: ({ cell }) => {
-      const status = cell.getValue<Product['category']>();
-      const Icon = status === 'active' ? Icons.circleCheck : Icons.xCircle;
-
+    cell: ({ row }) => {
       return (
         <Badge variant='outline' className='capitalize'>
-          <Icon />
-          {status}
+          {row.original.categoryName}
         </Badge>
       );
     },
@@ -67,8 +63,27 @@ export const columns: ColumnDef<Product>[] = [
     }
   },
   {
+    accessorKey: 'type',
+    header: 'TYPE',
+    cell: ({ row }) => (
+      <Badge
+        variant={row.getValue('type') === 'service' ? 'default' : 'secondary'}
+        className='capitalize'
+      >
+        {row.getValue('type')}
+      </Badge>
+    )
+  },
+  {
     accessorKey: 'price',
-    header: 'PRICE'
+    header: 'PRICE',
+    cell: ({ row }) => {
+      const amount = parseFloat(row.getValue('price'));
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount);
+    }
   },
   {
     accessorKey: 'description',
