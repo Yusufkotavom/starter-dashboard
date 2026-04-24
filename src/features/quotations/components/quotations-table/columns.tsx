@@ -26,6 +26,14 @@ export const columns: ColumnDef<Quotation>[] = [
         <div className='text-muted-foreground text-xs'>
           {row.original.clientCompany ?? row.original.clientName}
         </div>
+        {row.original.serviceNames.length > 0 ? (
+          <div className='text-muted-foreground text-xs'>
+            {row.original.serviceNames.slice(0, 2).join(', ')}
+            {row.original.serviceNames.length > 2
+              ? ` +${row.original.serviceNames.length - 2}`
+              : ''}
+          </div>
+        ) : null}
       </div>
     ),
     enableColumnFilter: true,

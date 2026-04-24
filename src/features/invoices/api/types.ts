@@ -9,6 +9,8 @@ export interface Invoice {
   projectName: string | null;
   status: InvoiceStatus;
   total: number;
+  paidAmount: number;
+  balanceDue: number;
   dueDate: string | null;
   paidAt: string | null;
   notes: string | null;

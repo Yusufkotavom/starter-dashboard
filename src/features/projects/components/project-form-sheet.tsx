@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
 import type { Project } from '../api/types';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
+import { quotationsQueryOptions } from '@/features/quotations/api/queries';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
 
@@ -37,11 +38,19 @@ function normalizeOptionalNumber(value: number | string | null | undefined): num
 export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormSheetProps) {
   const isEdit = !!project;
   const { data: clientData } = useQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
+  const { data: quotationData } = useQuery(quotationsQueryOptions({ page: 1, limit: 1000 }));
   const clientOptions =
     clientData?.items.map((client) => ({
       value: client.id,
       label: client.company ? `${client.company} - ${client.name}` : client.name
     })) ?? [];
+  const quotationOptions = [
+    { value: 0, label: 'No quotation linked' },
+    ...(quotationData?.items.map((quotation) => ({
+      value: quotation.id,
+      label: `${quotation.number} - ${quotation.clientCompany ?? quotation.clientName}`
+    })) ?? [])
+  ];
 
   const createMutation = useMutation({
     ...createProjectMutation,
@@ -83,7 +92,7 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
     onSubmit: async ({ value }) => {
       const payload = {
         ...value,
-        quotationId: normalizeOptionalNumber(value.quotationId),
+        quotationId: value.quotationId === 0 ? null : normalizeOptionalNumber(value.quotationId),
         budget: normalizeOptionalNumber(value.budget),
         startDate: value.startDate || null,
         endDate: value.endDate || null,
@@ -148,11 +157,11 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
                 <FormTextField name='endDate' label='End Date' type='date' />
               </div>
 
-              <FormTextField
+              <FormSelectField
                 name='quotationId'
-                label='Quotation ID'
-                type='number'
-                placeholder='Optional'
+                label='Quotation'
+                required
+                options={quotationOptions}
               />
 
               <FormTextareaField

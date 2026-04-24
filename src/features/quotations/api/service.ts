@@ -49,3 +49,14 @@ export async function deleteQuotation(id: number): Promise<void> {
     method: 'DELETE'
   });
 }
+
+export async function sendQuotation(id: number): Promise<{
+  success: boolean;
+  provider: string;
+  messageId: string;
+  status: string;
+}> {
+  return apiClient(`/quotations/${id}/send`, {
+    method: 'POST'
+  });
+}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
@@ -13,17 +14,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteQuotationMutation } from '../../api/mutations';
+import { deleteQuotationMutation, sendQuotationMutation } from '../../api/mutations';
 import type { Quotation } from '../../api/types';
-import { QuotationFormSheet } from '../quotation-form-sheet';
 
 interface CellActionProps {
   data: Quotation;
 }
 
 export function CellAction({ data }: CellActionProps) {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const deleteMutation = useMutation({
     ...deleteQuotationMutation,
@@ -34,6 +34,14 @@ export function CellAction({ data }: CellActionProps) {
     onError: () => toast.error('Failed to delete quotation')
   });
 
+  const sendMutation = useMutation({
+    ...sendQuotationMutation,
+    onSuccess: (result) => {
+      toast.success(`Quotation sent via ${result.provider}`);
+    },
+    onError: () => toast.error('Failed to send quotation')
+  });
+
   return (
     <>
       <AlertModal
@@ -42,7 +50,6 @@ export function CellAction({ data }: CellActionProps) {
         onConfirm={() => deleteMutation.mutate(data.id)}
         loading={deleteMutation.isPending}
       />
-      <QuotationFormSheet quotation={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant='ghost' className='h-8 w-8 border-0 p-0'>
@@ -52,7 +59,14 @@ export function CellAction({ data }: CellActionProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+          <DropdownMenuItem
+            onClick={() => sendMutation.mutate(data.id)}
+            disabled={sendMutation.isPending}
+          >
+            <Icons.send className='mr-2 h-4 w-4' />
+            Send Email
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`/dashboard/quotations/${data.id}`)}>
             <Icons.edit className='mr-2 h-4 w-4' />
             Update
           </DropdownMenuItem>

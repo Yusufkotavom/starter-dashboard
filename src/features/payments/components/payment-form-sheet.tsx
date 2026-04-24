@@ -36,7 +36,7 @@ export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormShe
   const invoiceOptions =
     invoiceData?.items.map((invoice) => ({
       value: invoice.id,
-      label: `${invoice.number} - ${invoice.clientName}`
+      label: `${invoice.number} - ${invoice.clientName} - due ${invoice.balanceDue.toLocaleString('id-ID')}`
     })) ?? [];
 
   const createMutation = useMutation({

@@ -6,6 +6,8 @@ export interface Quotation {
   clientId: number;
   clientName: string;
   clientCompany: string | null;
+  serviceIds: number[];
+  serviceNames: string[];
   status: QuotationStatus;
   total: number;
   validUntil: string | null;
@@ -31,6 +33,7 @@ export interface QuotationsResponse {
 export interface QuotationMutationPayload {
   number: string;
   clientId: number;
+  serviceIds?: number[];
   status: QuotationStatus;
   total: number;
   validUntil?: string | null;

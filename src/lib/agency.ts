@@ -12,13 +12,17 @@ type ProjectRecord = Prisma.ProjectGetPayload<{
   include: { client: true };
 }>;
 type QuotationRecord = Prisma.QuotationGetPayload<{
-  include: { client: true; _count: { select: { items: true } } };
+  include: {
+    client: true;
+    _count: { select: { items: true } };
+    items: { include: { product: true } };
+  };
 }>;
 type InvoiceRecord = Prisma.InvoiceGetPayload<{
-  include: { client: true; project: true };
+  include: { client: true; project: true; payments: { select: { amount: true } } };
 }>;
 type PaymentRecord = Prisma.PaymentGetPayload<{
-  include: { invoice: { include: { client: true } } };
+  include: { invoice: { include: { client: true; payments: { select: { amount: true } } } } };
 }>;
 type ExpenseRecord = Prisma.ExpenseGetPayload<{
   include: { project: true };
@@ -58,12 +62,15 @@ export function mapProjectRecord(record: ProjectRecord): Project {
 }
 
 export function mapQuotationRecord(record: QuotationRecord): Quotation {
+  const linkedServices = record.items.filter((item) => item.productId && item.product);
   return {
     id: record.id,
     number: record.number,
     clientId: record.clientId,
     clientName: record.client.name,
     clientCompany: record.client.company,
+    serviceIds: linkedServices.map((item) => item.productId as number),
+    serviceNames: linkedServices.map((item) => item.product?.name ?? item.description),
     status: record.status,
     total: Number(record.total),
     validUntil: record.validUntil?.toISOString() ?? null,
@@ -75,6 +82,8 @@ export function mapQuotationRecord(record: QuotationRecord): Quotation {
 }
 
 export function mapInvoiceRecord(record: InvoiceRecord): Invoice {
+  const paidAmount = record.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const total = Number(record.total);
   return {
     id: record.id,
     number: record.number,
@@ -83,7 +92,9 @@ export function mapInvoiceRecord(record: InvoiceRecord): Invoice {
     projectId: record.projectId,
     projectName: record.project?.name ?? null,
     status: record.status,
-    total: Number(record.total),
+    total,
+    paidAmount,
+    balanceDue: Math.max(total - paidAmount, 0),
     dueDate: record.dueDate?.toISOString() ?? null,
     paidAt: record.paidAt?.toISOString() ?? null,
     notes: record.notes,
@@ -93,11 +104,20 @@ export function mapInvoiceRecord(record: InvoiceRecord): Invoice {
 }
 
 export function mapPaymentRecord(record: PaymentRecord): Payment {
+  const invoicePaidAmount = record.invoice.payments.reduce(
+    (sum, payment) => sum + Number(payment.amount),
+    0
+  );
+  const invoiceTotal = Number(record.invoice.total);
   return {
     id: record.id,
     invoiceId: record.invoiceId,
     invoiceNumber: record.invoice.number,
     clientName: record.invoice.client.name,
+    invoiceTotal,
+    invoicePaidAmount,
+    invoiceBalanceDue: Math.max(invoiceTotal - invoicePaidAmount, 0),
+    invoiceStatus: record.invoice.status,
     amount: Number(record.amount),
     method: ((record.method || 'BANK_TRANSFER').toUpperCase() as PaymentMethod) ?? 'BANK_TRANSFER',
     reference: record.reference,

@@ -6,7 +6,7 @@ import { formatPrice } from '@/lib/utils';
 export async function RecentSales() {
   const recentPayments = (
     await prisma.payment.findMany({
-      include: { invoice: { include: { client: true } } },
+      include: { invoice: { include: { client: true, payments: { select: { amount: true } } } } },
       orderBy: { paidAt: 'desc' },
       take: 5
     })

@@ -5,6 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import {
   Sheet,
@@ -17,6 +18,7 @@ import {
 import { createQuotationMutation, updateQuotationMutation } from '../api/mutations';
 import type { Quotation } from '../api/types';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
+import { productsQueryOptions } from '@/features/products/api/queries';
 import { QUOTATION_STATUS_OPTIONS } from '../constants';
 import { quotationSchema, type QuotationFormValues } from '../schemas/quotation';
 
@@ -33,11 +35,21 @@ function toDateInputValue(value: string | null | undefined): string {
 export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationFormSheetProps) {
   const isEdit = !!quotation;
   const { data: clientData } = useQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
+  const { data: productData } = useQuery(productsQueryOptions({ page: 1, limit: 1000 }));
   const clientOptions =
     clientData?.items.map((client) => ({
       value: client.id,
       label: client.company ? `${client.company} - ${client.name}` : client.name
     })) ?? [];
+  const serviceOptions = [
+    { value: 0, label: 'Generic quotation' },
+    ...((productData?.products ?? [])
+      .filter((product) => product.type === 'service')
+      .map((product) => ({
+        value: product.id,
+        label: `${product.name} - ${product.categoryName}`
+      })) ?? [])
+  ];
 
   const createMutation = useMutation({
     ...createQuotationMutation,
@@ -62,6 +74,7 @@ export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationF
     defaultValues: {
       number: quotation?.number ?? '',
       clientId: quotation?.clientId ?? Number(clientOptions[0]?.value ?? 0),
+      serviceIds: quotation?.serviceIds ?? [],
       status: quotation?.status ?? 'DRAFT',
       total: quotation?.total ?? 0,
       validUntil: toDateInputValue(quotation?.validUntil),
@@ -107,6 +120,53 @@ export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationF
                 <FormTextField name='number' label='Quotation Number' required />
                 <FormSelectField name='clientId' label='Client' required options={clientOptions} />
               </div>
+
+              <form.AppField
+                name='serviceIds'
+                mode='array'
+                children={(field) => {
+                  const selectedServiceIds = field.state.value || [];
+
+                  return (
+                    <field.FieldSet>
+                      <field.Field>
+                        <field.FieldLabel>Services</field.FieldLabel>
+                        <field.FieldDescription>
+                          Link one or more services from your catalog to this quotation.
+                        </field.FieldDescription>
+                        <div className='grid gap-3 rounded-lg border p-4 md:grid-cols-2'>
+                          {serviceOptions
+                            .filter((option) => option.value !== 0)
+                            .map((option) => {
+                              const checked = selectedServiceIds.includes(option.value);
+
+                              return (
+                                <field.Field key={option.value} orientation='horizontal'>
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(nextChecked) => {
+                                      field.handleChange(
+                                        nextChecked
+                                          ? [...selectedServiceIds, option.value]
+                                          : selectedServiceIds.filter((id) => id !== option.value)
+                                      );
+                                    }}
+                                  />
+                                  <field.FieldContent>
+                                    <field.FieldLabel className='leading-none'>
+                                      {option.label}
+                                    </field.FieldLabel>
+                                  </field.FieldContent>
+                                </field.Field>
+                              );
+                            })}
+                        </div>
+                        <field.FieldError />
+                      </field.Field>
+                    </field.FieldSet>
+                  );
+                }}
+              />
 
               <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
                 <FormSelectField

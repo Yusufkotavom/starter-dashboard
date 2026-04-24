@@ -1,7 +1,9 @@
 import type { SearchParams } from 'nuqs/server';
+import Link from 'next/link';
 import PageContainer from '@/components/layout/page-container';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import InvoiceListingPage from '@/features/invoices/components/invoice-listing';
-import { InvoiceFormSheetTrigger } from '@/features/invoices/components/invoice-form-sheet';
 import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
@@ -20,7 +22,14 @@ export default async function InvoicesPage(props: PageProps) {
     <PageContainer
       pageTitle='Invoices'
       pageDescription='Track billing status, due dates, and invoice value per client.'
-      pageHeaderAction={<InvoiceFormSheetTrigger />}
+      pageHeaderAction={
+        <Button asChild>
+          <Link href='/dashboard/invoices/new'>
+            <Icons.add className='mr-2 h-4 w-4' />
+            New Invoice
+          </Link>
+        </Button>
+      }
     >
       <InvoiceListingPage />
     </PageContainer>

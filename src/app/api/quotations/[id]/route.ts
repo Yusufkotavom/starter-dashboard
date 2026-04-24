@@ -6,23 +6,37 @@ import type { QuotationMutationPayload } from '@/features/quotations/api/types';
 
 type Params = { params: Promise<{ id: string }> };
 
-function buildQuotationItems(total: number, itemsCount: number) {
-  const safeCount = Math.max(itemsCount, 1);
+async function buildQuotationItems(total: number, itemsCount: number, serviceIds?: number[]) {
+  const normalizedServiceIds = [...new Set((serviceIds ?? []).filter((id) => id > 0))];
+  const services =
+    normalizedServiceIds.length > 0
+      ? await prisma.product.findMany({ where: { id: { in: normalizedServiceIds } } })
+      : [];
+  const safeCount = Math.max(itemsCount, services.length, 1);
   const unitAmount = Number((total / safeCount).toFixed(2));
 
-  return Array.from({ length: safeCount }, (_, index) => ({
-    description: `Service line ${index + 1}`,
-    qty: new Prisma.Decimal(1),
-    unitPrice: new Prisma.Decimal(unitAmount),
-    amount: new Prisma.Decimal(unitAmount)
-  }));
+  return Array.from({ length: safeCount }, (_, index) => {
+    const service = services[index];
+
+    return {
+      productId: service?.id ?? null,
+      description: service?.name ?? `Service line ${index + 1}`,
+      qty: new Prisma.Decimal(1),
+      unitPrice: new Prisma.Decimal(unitAmount),
+      amount: new Prisma.Decimal(unitAmount)
+    };
+  });
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const quotation = await prisma.quotation.findUnique({
     where: { id: Number(id) },
-    include: { client: true, _count: { select: { items: true } } }
+    include: {
+      client: true,
+      _count: { select: { items: true } },
+      items: { include: { product: true } }
+    }
   });
 
   if (!quotation) {
@@ -51,10 +65,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
         notes: body.notes?.trim() || null,
         items: {
           deleteMany: {},
-          create: buildQuotationItems(body.total, body.itemsCount)
+          create: await buildQuotationItems(body.total, body.itemsCount, body.serviceIds)
         }
       },
-      include: { client: true, _count: { select: { items: true } } }
+      include: {
+        client: true,
+        _count: { select: { items: true } },
+        items: { include: { product: true } }
+      }
     });
 
     return NextResponse.json(mapQuotationRecord(quotation));

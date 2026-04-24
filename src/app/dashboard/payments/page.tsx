@@ -1,7 +1,9 @@
 import type { SearchParams } from 'nuqs/server';
+import Link from 'next/link';
 import PageContainer from '@/components/layout/page-container';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import PaymentListingPage from '@/features/payments/components/payment-listing';
-import { PaymentFormSheetTrigger } from '@/features/payments/components/payment-form-sheet';
 import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
@@ -20,7 +22,14 @@ export default async function PaymentsPage(props: PageProps) {
     <PageContainer
       pageTitle='Payments'
       pageDescription='Record cash-in activity for sent and paid invoices.'
-      pageHeaderAction={<PaymentFormSheetTrigger />}
+      pageHeaderAction={
+        <Button asChild>
+          <Link href='/dashboard/payments/new'>
+            <Icons.add className='mr-2 h-4 w-4' />
+            Record Payment
+          </Link>
+        </Button>
+      }
     >
       <PaymentListingPage />
     </PageContainer>

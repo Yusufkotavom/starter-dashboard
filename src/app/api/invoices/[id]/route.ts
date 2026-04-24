@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const invoice = await prisma.invoice.findUnique({
     where: { id: Number(id) },
-    include: { client: true, project: true }
+    include: { client: true, project: true, payments: { select: { amount: true } } }
   });
 
   if (!invoice) {
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const invoice = await prisma.invoice.update({
       where: { id: Number(id) },
       data: normalizeInvoicePayload(body),
-      include: { client: true, project: true }
+      include: { client: true, project: true, payments: { select: { amount: true } } }
     });
 
     return NextResponse.json(mapInvoiceRecord(invoice));

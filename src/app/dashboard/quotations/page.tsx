@@ -1,7 +1,9 @@
 import type { SearchParams } from 'nuqs/server';
+import Link from 'next/link';
 import PageContainer from '@/components/layout/page-container';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
 import QuotationListingPage from '@/features/quotations/components/quotation-listing';
-import { QuotationFormSheetTrigger } from '@/features/quotations/components/quotation-form-sheet';
 import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
@@ -20,7 +22,14 @@ export default async function QuotationsPage(props: PageProps) {
     <PageContainer
       pageTitle='Quotations'
       pageDescription='Build and track proposals before they become active projects.'
-      pageHeaderAction={<QuotationFormSheetTrigger />}
+      pageHeaderAction={
+        <Button asChild>
+          <Link href='/dashboard/quotations/new'>
+            <Icons.add className='mr-2 h-4 w-4' />
+            New Quotation
+          </Link>
+        </Button>
+      }
     >
       <QuotationListingPage />
     </PageContainer>

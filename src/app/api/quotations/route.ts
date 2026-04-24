@@ -4,21 +4,31 @@ import { prisma } from '@/lib/prisma';
 import { buildQuotationOrderBy, mapQuotationRecord } from '@/lib/agency';
 import type { QuotationMutationPayload } from '@/features/quotations/api/types';
 
-function buildQuotationItems(total: number, itemsCount: number) {
-  const safeCount = Math.max(itemsCount, 1);
+async function buildQuotationItems(total: number, itemsCount: number, serviceIds?: number[]) {
+  const normalizedServiceIds = [...new Set((serviceIds ?? []).filter((id) => id > 0))];
+  const services =
+    normalizedServiceIds.length > 0
+      ? await prisma.product.findMany({ where: { id: { in: normalizedServiceIds } } })
+      : [];
+  const safeCount = Math.max(itemsCount, services.length, 1);
   const unitAmount = Number((total / safeCount).toFixed(2));
 
-  return Array.from({ length: safeCount }, (_, index) => ({
-    description: `Service line ${index + 1}`,
-    qty: new Prisma.Decimal(1),
-    unitPrice: new Prisma.Decimal(unitAmount),
-    amount: new Prisma.Decimal(unitAmount)
-  }));
+  return Array.from({ length: safeCount }, (_, index) => {
+    const service = services[index];
+
+    return {
+      productId: service?.id ?? null,
+      description: service?.name ?? `Service line ${index + 1}`,
+      qty: new Prisma.Decimal(1),
+      unitPrice: new Prisma.Decimal(unitAmount),
+      amount: new Prisma.Decimal(unitAmount)
+    };
+  });
 }
 
-function normalizeQuotationPayload(
+async function normalizeQuotationPayload(
   body: QuotationMutationPayload
-): Prisma.QuotationUncheckedCreateInput {
+): Promise<Prisma.QuotationUncheckedCreateInput> {
   return {
     number: body.number.trim(),
     clientId: body.clientId,
@@ -30,7 +40,7 @@ function normalizeQuotationPayload(
     validUntil: body.validUntil ? new Date(body.validUntil) : null,
     notes: body.notes?.trim() || null,
     items: {
-      create: buildQuotationItems(body.total, body.itemsCount)
+      create: await buildQuotationItems(body.total, body.itemsCount, body.serviceIds)
     }
   };
 }
@@ -61,7 +71,11 @@ export async function GET(request: NextRequest) {
   const [items, total] = await Promise.all([
     prisma.quotation.findMany({
       where,
-      include: { client: true, _count: { select: { items: true } } },
+      include: {
+        client: true,
+        _count: { select: { items: true } },
+        items: { include: { product: true } }
+      },
       orderBy: buildQuotationOrderBy(sort),
       skip,
       take: limit
@@ -78,8 +92,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as QuotationMutationPayload;
   const created = await prisma.quotation.create({
-    data: normalizeQuotationPayload(body),
-    include: { client: true, _count: { select: { items: true } } }
+    data: await normalizeQuotationPayload(body),
+    include: {
+      client: true,
+      _count: { select: { items: true } },
+      items: { include: { product: true } }
+    }
   });
 
   return NextResponse.json(mapQuotationRecord(created), { status: 201 });

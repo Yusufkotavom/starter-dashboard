@@ -19,6 +19,10 @@ export const columns: ColumnDef<Payment>[] = [
       <div className='min-w-[220px]'>
         <div className='font-medium'>{row.original.invoiceNumber}</div>
         <div className='text-muted-foreground text-xs'>{row.original.clientName}</div>
+        <div className='text-muted-foreground text-xs'>
+          Due {formatPrice(row.original.invoiceBalanceDue)} of{' '}
+          {formatPrice(row.original.invoiceTotal)}
+        </div>
       </div>
     ),
     enableColumnFilter: true,

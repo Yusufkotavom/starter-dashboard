@@ -5,6 +5,10 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   clientName: string;
+  invoiceTotal: number;
+  invoicePaidAmount: number;
+  invoiceBalanceDue: number;
+  invoiceStatus: string;
   amount: number;
   method: PaymentMethod;
   reference: string | null;

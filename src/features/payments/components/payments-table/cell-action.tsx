@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
@@ -15,15 +16,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { deletePaymentMutation } from '../../api/mutations';
 import type { Payment } from '../../api/types';
-import { PaymentFormSheet } from '../payment-form-sheet';
 
 interface CellActionProps {
   data: Payment;
 }
 
 export function CellAction({ data }: CellActionProps) {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const deleteMutation = useMutation({
     ...deletePaymentMutation,
@@ -42,7 +42,6 @@ export function CellAction({ data }: CellActionProps) {
         onConfirm={() => deleteMutation.mutate(data.id)}
         loading={deleteMutation.isPending}
       />
-      <PaymentFormSheet payment={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant='ghost' className='h-8 w-8 border-0 p-0'>
@@ -52,7 +51,7 @@ export function CellAction({ data }: CellActionProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+          <DropdownMenuItem onClick={() => router.push(`/dashboard/payments/${data.id}`)}>
             <Icons.edit className='mr-2 h-4 w-4' />
             Update
           </DropdownMenuItem>

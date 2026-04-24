@@ -41,3 +41,14 @@ export async function deleteInvoice(id: number): Promise<void> {
     method: 'DELETE'
   });
 }
+
+export async function sendInvoice(id: number): Promise<{
+  success: boolean;
+  provider: string;
+  messageId: string;
+  status: string;
+}> {
+  return apiClient(`/invoices/${id}/send`, {
+    method: 'POST'
+  });
+}

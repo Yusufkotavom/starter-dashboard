@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   const [items, total] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      include: { client: true, project: true },
+      include: { client: true, project: true, payments: { select: { amount: true } } },
       orderBy: buildInvoiceOrderBy(sort),
       skip,
       take: limit
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as InvoiceMutationPayload;
   const created = await prisma.invoice.create({
     data: normalizeInvoicePayload(body),
-    include: { client: true, project: true }
+    include: { client: true, project: true, payments: { select: { amount: true } } }
   });
 
   return NextResponse.json(mapInvoiceRecord(created), { status: 201 });

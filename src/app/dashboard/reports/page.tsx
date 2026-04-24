@@ -26,7 +26,7 @@ export default async function ReportsPage() {
     prisma.client.count(),
     prisma.invoice
       .findMany({
-        include: { client: true, project: true },
+        include: { client: true, project: true, payments: { select: { amount: true } } },
         orderBy: { createdAt: 'desc' },
         take: 5
       })
