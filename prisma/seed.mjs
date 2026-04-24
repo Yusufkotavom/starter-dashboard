@@ -9,6 +9,10 @@ import {
 
 const prisma = new PrismaClient();
 
+function log(message) {
+  process.stdout.write(`${message}\n`);
+}
+
 // ── Categories (service/product categories) ───────────────────────
 
 const categories = [
@@ -107,7 +111,7 @@ const clients = [
 // ── Main ──────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🌱 Seeding agency dashboard data...\n');
+  log('🌱 Seeding agency dashboard data...\n');
 
   // Categories
   for (const cat of categories) {
@@ -117,7 +121,7 @@ async function main() {
       create: cat
     });
   }
-  console.log(`  ✅ ${categories.length} categories`);
+  log(`  ✅ ${categories.length} categories`);
 
   // Products
   for (const [i, prod] of products.entries()) {
@@ -127,7 +131,7 @@ async function main() {
       create: prod
     });
   }
-  console.log(`  ✅ ${products.length} products/services`);
+  log(`  ✅ ${products.length} products/services`);
 
   // Clients
   for (const client of clients) {
@@ -137,7 +141,7 @@ async function main() {
       create: client
     });
   }
-  console.log(`  ✅ ${clients.length} clients`);
+  log(`  ✅ ${clients.length} clients`);
 
   // Sample Quotation → Project → Invoice
   const client = await prisma.client.findFirst({ where: { email: 'budi@ptmajujaya.co.id' } });
@@ -207,13 +211,13 @@ async function main() {
         }
       });
 
-      console.log('  ✅ 1 quotation (APPROVED) + 1 project (ACTIVE) + 1 invoice (SENT)');
+      log('  ✅ 1 quotation (APPROVED) + 1 project (ACTIVE) + 1 invoice (SENT)');
     } else {
-      console.log('  ℹ️  Sample data already exists, skipped');
+      log('  ℹ️  Sample data already exists, skipped');
     }
   }
 
-  console.log('\n✨ Seed complete!');
+  log('\n✨ Seed complete!');
 }
 
 main()
