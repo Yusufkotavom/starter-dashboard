@@ -27,7 +27,10 @@ function normalizeNumberInput(value?: string | null): string | null {
   return normalized ? normalized : null;
 }
 
-async function generateRunningNumber(db: DbClient, type: 'quotation' | 'invoice'): Promise<string> {
+export async function generateRunningNumber(
+  db: DbClient,
+  type: 'quotation' | 'invoice'
+): Promise<string> {
   const year = new Date().getUTCFullYear();
   const settings = await db.appSettings.findUnique({
     where: { id: 1 },

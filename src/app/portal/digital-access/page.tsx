@@ -1,43 +1,23 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getPortalClientContext } from '@/lib/customer-portal';
+import { PortalPagination } from '@/app/portal/_components/portal-pagination';
+import { getPortalDigitalAccessPageData } from '@/lib/customer-portal';
 
-export default async function PortalDigitalAccessPage() {
-  const context = await getPortalClientContext();
+interface PortalDigitalAccessPageProps {
+  searchParams: Promise<{
+    page?: string;
+  }>;
+}
 
-  if (!context?.client) {
+export default async function PortalDigitalAccessPage({
+  searchParams
+}: PortalDigitalAccessPageProps) {
+  const { page } = await searchParams;
+  const data = await getPortalDigitalAccessPageData(page);
+
+  if (!data?.client) {
     return null;
   }
-
-  const digitalItems = context.client.invoices.flatMap((invoice) => {
-    const projectItems =
-      invoice.project?.quotation?.items
-        .filter((item) => item.product?.isDigital && item.product.deliveryUrl)
-        .map((item) => ({
-          key: `invoice-${invoice.id}-item-${item.id}`,
-          invoiceId: invoice.id,
-          invoiceNumber: invoice.number,
-          title: item.description,
-          subtitle: item.product?.name ?? 'Digital item',
-          deliveryUrl: item.product?.deliveryUrl ?? ''
-        })) ?? [];
-
-    const subscriptionItem =
-      invoice.subscription?.plan.service?.isDigital && invoice.subscription.plan.service.deliveryUrl
-        ? [
-            {
-              key: `invoice-${invoice.id}-subscription`,
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.number,
-              title: invoice.subscription.plan.name,
-              subtitle: invoice.subscription.plan.service.name,
-              deliveryUrl: invoice.subscription.plan.service.deliveryUrl
-            }
-          ]
-        : [];
-
-    return [...projectItems, ...subscriptionItem];
-  });
 
   return (
     <div className='space-y-6'>
@@ -56,12 +36,12 @@ export default async function PortalDigitalAccessPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
-          {digitalItems.length === 0 ? (
+          {data.items.length === 0 ? (
             <div className='text-muted-foreground text-sm'>
               No digital items have been delivered to your account yet.
             </div>
           ) : (
-            digitalItems.map((item) => (
+            data.items.map((item) => (
               <div
                 key={item.key}
                 className='flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between'
@@ -87,6 +67,7 @@ export default async function PortalDigitalAccessPage() {
               </div>
             ))
           )}
+          <PortalPagination basePath='/portal/digital-access' pagination={data.pagination} />
         </CardContent>
       </Card>
     </div>

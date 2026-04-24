@@ -1,24 +1,26 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PortalPagination } from '@/app/portal/_components/portal-pagination';
 import { StatusBadge } from '@/app/portal/_components/status-badge';
-import { getPortalClientContext } from '@/lib/customer-portal';
+import { getPortalSubscriptionsPageData } from '@/lib/customer-portal';
 import { formatPrice } from '@/lib/utils';
+import { getStatusTone } from '@/app/portal/_components/status-tone';
 
-function getStatusTone(value: string): 'default' | 'success' | 'warning' | 'danger' {
-  if (['PAID', 'APPROVED', 'ACTIVE', 'COMPLETED'].includes(value)) return 'success';
-  if (['OVERDUE', 'REJECTED', 'CANCELLED', 'EXPIRED'].includes(value)) return 'danger';
-  if (['PARTIAL', 'PAUSED', 'SENT'].includes(value)) return 'warning';
-  return 'default';
+interface PortalSubscriptionsPageProps {
+  searchParams: Promise<{
+    page?: string;
+  }>;
 }
 
-export default async function PortalSubscriptionsPage() {
-  const context = await getPortalClientContext();
+export default async function PortalSubscriptionsPage({
+  searchParams
+}: PortalSubscriptionsPageProps) {
+  const { page } = await searchParams;
+  const data = await getPortalSubscriptionsPageData(page);
 
-  if (!context?.client) {
+  if (!data?.client) {
     return null;
   }
-
-  const subscriptions = context.client.subscriptions;
 
   return (
     <div className='space-y-6'>
@@ -38,10 +40,10 @@ export default async function PortalSubscriptionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
-          {subscriptions.length === 0 ? (
+          {data.items.length === 0 ? (
             <div className='text-muted-foreground text-sm'>No recurring subscriptions yet.</div>
           ) : (
-            subscriptions.map((subscription) => (
+            data.items.map((subscription) => (
               <div key={subscription.id} className='space-y-4 rounded-xl border p-4'>
                 <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
                   <div className='space-y-1'>
@@ -85,6 +87,7 @@ export default async function PortalSubscriptionsPage() {
               </div>
             ))
           )}
+          <PortalPagination basePath='/portal/subscriptions' pagination={data.pagination} />
         </CardContent>
       </Card>
     </div>

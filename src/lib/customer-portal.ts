@@ -1,94 +1,256 @@
 import { currentUser } from '@clerk/nextjs/server';
-import { InvoiceStatus, Prisma, SubscriptionStatus } from '@prisma/client';
+import { InvoiceStatus, Prisma, ProjectStatus, SubscriptionStatus } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
-const portalClientInclude = {
-  quotations: {
-    include: {
-      items: {
-        include: {
-          product: true
-        }
-      },
-      project: true
-    },
-    orderBy: { createdAt: 'desc' }
+export interface PortalCatalogPlan {
+  id: number;
+  name: string;
+  description: string | null;
+  interval: string;
+  price: number;
+}
+
+export interface PortalCatalogProduct {
+  id: number;
+  name: string;
+  description: string;
+  type: 'product' | 'service';
+  price: number;
+  unit: string;
+  isDigital: boolean;
+  deliveryUrl: string | null;
+  categoryName: string;
+  plans: PortalCatalogPlan[];
+}
+
+export interface PortalPaginationMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+const PORTAL_PAGE_SIZE = 10;
+
+const portalClientSummarySelect = {
+  id: true,
+  name: true,
+  email: true,
+  company: true,
+  status: true
+} satisfies Prisma.ClientSelect;
+
+type PortalClientSummary = Prisma.ClientGetPayload<{
+  select: typeof portalClientSummarySelect;
+}>;
+
+const portalOverviewOutstandingInvoiceSelect = {
+  id: true,
+  total: true,
+  payments: {
+    select: {
+      amount: true
+    }
+  }
+} satisfies Prisma.InvoiceSelect;
+
+const portalQuotationListSelect = {
+  id: true,
+  number: true,
+  status: true,
+  total: true,
+  createdAt: true,
+  validUntil: true,
+  project: {
+    select: {
+      id: true,
+      name: true
+    }
+  }
+} satisfies Prisma.QuotationSelect;
+
+const portalInvoiceListSelect = {
+  id: true,
+  number: true,
+  status: true,
+  total: true,
+  dueDate: true,
+  createdAt: true,
+  project: {
+    select: {
+      id: true,
+      name: true
+    }
   },
-  projects: {
-    orderBy: { updatedAt: 'desc' }
+  subscription: {
+    select: {
+      id: true,
+      plan: {
+        select: {
+          name: true
+        }
+      }
+    }
+  },
+  payments: {
+    select: {
+      amount: true
+    }
+  }
+} satisfies Prisma.InvoiceSelect;
+
+const portalProjectListSelect = {
+  id: true,
+  name: true,
+  status: true,
+  startDate: true,
+  endDate: true,
+  quotationId: true,
+  budget: true,
+  updatedAt: true
+} satisfies Prisma.ProjectSelect;
+
+const portalSubscriptionListSelect = {
+  id: true,
+  status: true,
+  nextBillingDate: true,
+  priceOverride: true,
+  plan: {
+    select: {
+      id: true,
+      name: true,
+      interval: true,
+      price: true
+    }
+  },
+  project: {
+    select: {
+      id: true,
+      name: true
+    }
   },
   invoices: {
-    include: {
-      project: {
-        include: {
-          quotation: {
-            include: {
-              items: {
-                include: {
-                  product: true
+    select: {
+      id: true,
+      number: true,
+      total: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take: 6
+  }
+} satisfies Prisma.ClientSubscriptionSelect;
+
+const portalDigitalAccessInvoiceSelect = {
+  id: true,
+  number: true,
+  project: {
+    select: {
+      quotation: {
+        select: {
+          items: {
+            select: {
+              id: true,
+              description: true,
+              product: {
+                select: {
+                  name: true,
+                  isDigital: true,
+                  deliveryUrl: true
                 }
               }
             }
           }
         }
-      },
-      payments: { select: { amount: true } },
-      subscription: {
-        include: {
-          plan: {
-            include: {
-              service: true
+      }
+    }
+  },
+  subscription: {
+    select: {
+      plan: {
+        select: {
+          name: true,
+          service: {
+            select: {
+              name: true,
+              isDigital: true,
+              deliveryUrl: true
             }
           }
         }
       }
-    },
-    orderBy: { createdAt: 'desc' }
-  },
-  subscriptions: {
-    include: {
-      plan: {
-        include: {
-          service: true
-        }
-      },
-      project: true,
-      invoices: {
-        include: { payments: { select: { amount: true } } },
-        orderBy: { createdAt: 'desc' }
-      }
-    },
-    orderBy: { createdAt: 'desc' }
+    }
   }
-} satisfies Prisma.ClientInclude;
+} satisfies Prisma.InvoiceSelect;
 
-type PortalClientRecord = Prisma.ClientGetPayload<{
-  include: typeof portalClientInclude;
+type PortalQuotationListItem = Prisma.QuotationGetPayload<{
+  select: typeof portalQuotationListSelect;
 }>;
 
-type PortalPaymentRecord = Prisma.PaymentGetPayload<{
-  include: {
-    invoice: {
-      select: {
-        id: true;
-        number: true;
-        total: true;
-        status: true;
-      };
-    };
+type PortalInvoiceListItem = Prisma.InvoiceGetPayload<{
+  select: typeof portalInvoiceListSelect;
+}>;
+
+type PortalProjectListItem = Prisma.ProjectGetPayload<{
+  select: typeof portalProjectListSelect;
+}>;
+
+type PortalSubscriptionListItem = Prisma.ClientSubscriptionGetPayload<{
+  select: typeof portalSubscriptionListSelect;
+}>;
+
+export interface PortalOverviewData {
+  client: PortalClientSummary | null;
+  quotationsCount: number;
+  activeProjectsCount: number;
+  outstandingInvoicesCount: number;
+  outstandingBalance: number;
+  activeSubscriptionsCount: number;
+  recentPaymentsCount: number;
+  digitalAccessCount: number;
+}
+
+export interface PortalPagedResult<T> {
+  client: PortalClientSummary;
+  items: T[];
+  pagination: PortalPaginationMeta;
+}
+
+export interface PortalDigitalAccessItem {
+  key: string;
+  invoiceId: number;
+  invoiceNumber: string;
+  title: string;
+  subtitle: string;
+  deliveryUrl: string;
+}
+
+function normalizePortalPage(page: number | string | undefined): number {
+  const value =
+    typeof page === 'string' ? Number.parseInt(page, 10) : typeof page === 'number' ? page : 1;
+
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function buildPortalPaginationMeta(
+  totalItems: number,
+  page: number,
+  pageSize = PORTAL_PAGE_SIZE
+): PortalPaginationMeta {
+  const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+
+  return {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+    hasPreviousPage: page > 1,
+    hasNextPage: page < totalPages
   };
-}>;
-
-export interface PortalClientContext {
-  user: Awaited<ReturnType<typeof currentUser>>;
-  email: string;
-  client: PortalClientRecord | null;
-  quotations: PortalClientRecord['quotations'];
-  activeProjects: PortalClientRecord['projects'];
-  outstandingInvoices: PortalClientRecord['invoices'];
-  activeSubscriptions: PortalClientRecord['subscriptions'];
-  payments: PortalPaymentRecord[];
 }
 
 const portalQuotationInclude = {
@@ -163,77 +325,402 @@ export type PortalProjectDocument = Prisma.ProjectGetPayload<{
   include: typeof portalProjectInclude;
 }>;
 
-export async function getPortalClientContext(): Promise<PortalClientContext | null> {
-  const user = await currentUser();
-
-  if (!user) {
-    redirect('/auth/sign-in');
-  }
-
-  const email =
-    user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)?.emailAddress ?? '';
-
-  if (!email) {
-    return null;
-  }
-
+export async function getPortalOverviewData(): Promise<PortalOverviewData | null> {
+  const identity = await getPortalIdentity();
   const client = await prisma.client.findUnique({
-    where: { email },
-    include: portalClientInclude
+    where: { email: identity.email },
+    select: portalClientSummarySelect
   });
 
   if (!client) {
     return {
-      user,
-      email,
       client: null,
-      quotations: [],
-      activeProjects: [],
-      outstandingInvoices: [],
-      activeSubscriptions: [],
-      payments: []
+      quotationsCount: 0,
+      activeProjectsCount: 0,
+      outstandingInvoicesCount: 0,
+      outstandingBalance: 0,
+      activeSubscriptionsCount: 0,
+      recentPaymentsCount: 0,
+      digitalAccessCount: 0
     };
   }
 
-  const payments = await prisma.payment.findMany({
-    where: { invoice: { clientId: client.id } },
-    include: {
-      invoice: {
-        select: {
-          id: true,
-          number: true,
-          total: true,
-          status: true
-        }
-      }
-    },
-    orderBy: { paidAt: 'desc' },
-    take: 10
-  });
-
-  const activeProjects = client.projects.filter((project) => project.status === 'ACTIVE');
   const outstandingStatuses: InvoiceStatus[] = [
     InvoiceStatus.SENT,
     InvoiceStatus.PARTIAL,
     InvoiceStatus.OVERDUE
   ];
-  const outstandingInvoices = client.invoices.filter((invoice) =>
-    outstandingStatuses.includes(invoice.status)
-  );
-  const activeSubscriptions = client.subscriptions.filter(
-    (subscription) => subscription.status === SubscriptionStatus.ACTIVE
-  );
+
+  const [
+    quotationsCount,
+    activeProjectsCount,
+    outstandingInvoicesCount,
+    outstandingInvoices,
+    activeSubscriptionsCount,
+    recentPaymentsCount,
+    digitalAccessInvoices
+  ] = await Promise.all([
+    prisma.quotation.count({
+      where: { clientId: client.id }
+    }),
+    prisma.project.count({
+      where: {
+        clientId: client.id,
+        status: ProjectStatus.ACTIVE
+      }
+    }),
+    prisma.invoice.count({
+      where: {
+        clientId: client.id,
+        status: { in: outstandingStatuses }
+      }
+    }),
+    prisma.invoice.findMany({
+      where: {
+        clientId: client.id,
+        status: { in: outstandingStatuses }
+      },
+      select: portalOverviewOutstandingInvoiceSelect
+    }),
+    prisma.clientSubscription.count({
+      where: {
+        clientId: client.id,
+        status: SubscriptionStatus.ACTIVE
+      }
+    }),
+    prisma.payment.count({
+      where: {
+        invoice: {
+          clientId: client.id
+        }
+      }
+    }),
+    prisma.invoice.findMany({
+      where: {
+        clientId: client.id,
+        OR: [
+          {
+            project: {
+              quotation: {
+                items: {
+                  some: {
+                    product: {
+                      isDigital: true,
+                      NOT: {
+                        deliveryUrl: null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            subscription: {
+              plan: {
+                service: {
+                  isDigital: true,
+                  NOT: {
+                    deliveryUrl: null
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      select: { id: true }
+    })
+  ]);
+
+  const outstandingBalance = outstandingInvoices.reduce((sum, invoice) => {
+    const paidAmount = invoice.payments.reduce(
+      (paymentSum, payment) => paymentSum + Number(payment.amount),
+      0
+    );
+
+    return sum + Math.max(Number(invoice.total) - paidAmount, 0);
+  }, 0);
 
   return {
-    user,
-    email,
     client,
-    quotations: client.quotations,
-    activeProjects,
-    outstandingInvoices,
-    activeSubscriptions,
-    payments
+    quotationsCount,
+    activeProjectsCount,
+    outstandingInvoicesCount,
+    outstandingBalance,
+    activeSubscriptionsCount,
+    recentPaymentsCount,
+    digitalAccessCount: digitalAccessInvoices.length
   };
+}
+
+export async function getPortalInvoicesPageData(
+  pageInput?: number | string
+): Promise<PortalPagedResult<PortalInvoiceListItem> | null> {
+  const { client } = await getPortalClientOrThrow();
+  const page = normalizePortalPage(pageInput);
+  const skip = (page - 1) * PORTAL_PAGE_SIZE;
+
+  const [totalItems, items, clientSummary] = await Promise.all([
+    prisma.invoice.count({
+      where: { clientId: client.id }
+    }),
+    prisma.invoice.findMany({
+      where: { clientId: client.id },
+      select: portalInvoiceListSelect,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: PORTAL_PAGE_SIZE
+    }),
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    })
+  ]);
+
+  if (!clientSummary) {
+    return null;
+  }
+
+  return {
+    client: clientSummary,
+    items,
+    pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalQuotationsPageData(
+  pageInput?: number | string
+): Promise<PortalPagedResult<PortalQuotationListItem> | null> {
+  const { client } = await getPortalClientOrThrow();
+  const page = normalizePortalPage(pageInput);
+  const skip = (page - 1) * PORTAL_PAGE_SIZE;
+
+  const [totalItems, items, clientSummary] = await Promise.all([
+    prisma.quotation.count({
+      where: { clientId: client.id }
+    }),
+    prisma.quotation.findMany({
+      where: { clientId: client.id },
+      select: portalQuotationListSelect,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: PORTAL_PAGE_SIZE
+    }),
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    })
+  ]);
+
+  if (!clientSummary) {
+    return null;
+  }
+
+  return {
+    client: clientSummary,
+    items,
+    pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalProjectsPageData(
+  pageInput?: number | string
+): Promise<PortalPagedResult<PortalProjectListItem> | null> {
+  const { client } = await getPortalClientOrThrow();
+  const page = normalizePortalPage(pageInput);
+  const skip = (page - 1) * PORTAL_PAGE_SIZE;
+
+  const [totalItems, items, clientSummary] = await Promise.all([
+    prisma.project.count({
+      where: { clientId: client.id }
+    }),
+    prisma.project.findMany({
+      where: { clientId: client.id },
+      select: portalProjectListSelect,
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      skip,
+      take: PORTAL_PAGE_SIZE
+    }),
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    })
+  ]);
+
+  if (!clientSummary) {
+    return null;
+  }
+
+  return {
+    client: clientSummary,
+    items,
+    pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalSubscriptionsPageData(
+  pageInput?: number | string
+): Promise<PortalPagedResult<PortalSubscriptionListItem> | null> {
+  const { client } = await getPortalClientOrThrow();
+  const page = normalizePortalPage(pageInput);
+  const skip = (page - 1) * PORTAL_PAGE_SIZE;
+
+  const [totalItems, items, clientSummary] = await Promise.all([
+    prisma.clientSubscription.count({
+      where: { clientId: client.id }
+    }),
+    prisma.clientSubscription.findMany({
+      where: { clientId: client.id },
+      select: portalSubscriptionListSelect,
+      orderBy: [{ createdAt: 'desc' }],
+      skip,
+      take: PORTAL_PAGE_SIZE
+    }),
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    })
+  ]);
+
+  if (!clientSummary) {
+    return null;
+  }
+
+  return {
+    client: clientSummary,
+    items,
+    pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalDigitalAccessPageData(
+  pageInput?: number | string
+): Promise<PortalPagedResult<PortalDigitalAccessItem> | null> {
+  const { client } = await getPortalClientOrThrow();
+  const page = normalizePortalPage(pageInput);
+  const skip = (page - 1) * PORTAL_PAGE_SIZE;
+
+  const [invoices, clientSummary] = await Promise.all([
+    prisma.invoice.findMany({
+      where: {
+        clientId: client.id,
+        OR: [
+          {
+            project: {
+              quotation: {
+                items: {
+                  some: {
+                    product: {
+                      isDigital: true,
+                      NOT: {
+                        deliveryUrl: null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            subscription: {
+              plan: {
+                service: {
+                  isDigital: true,
+                  NOT: {
+                    deliveryUrl: null
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      select: portalDigitalAccessInvoiceSelect,
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    })
+  ]);
+
+  if (!clientSummary) {
+    return null;
+  }
+
+  const allItems = invoices.flatMap((invoice) => {
+    const projectItems =
+      invoice.project?.quotation?.items
+        .filter((item) => item.product?.isDigital && item.product.deliveryUrl)
+        .map((item) => ({
+          key: `invoice-${invoice.id}-item-${item.id}`,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          title: item.description,
+          subtitle: item.product?.name ?? 'Digital item',
+          deliveryUrl: item.product?.deliveryUrl ?? ''
+        })) ?? [];
+
+    const subscriptionItem =
+      invoice.subscription?.plan.service?.isDigital && invoice.subscription.plan.service.deliveryUrl
+        ? [
+            {
+              key: `invoice-${invoice.id}-subscription`,
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.number,
+              title: invoice.subscription.plan.name,
+              subtitle: invoice.subscription.plan.service.name,
+              deliveryUrl: invoice.subscription.plan.service.deliveryUrl
+            }
+          ]
+        : [];
+
+    return [...projectItems, ...subscriptionItem];
+  });
+
+  const totalItems = allItems.length;
+  const items = allItems.slice(skip, skip + PORTAL_PAGE_SIZE);
+
+  return {
+    client: clientSummary,
+    items,
+    pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalOrderCatalog(): Promise<PortalCatalogProduct[]> {
+  const products = await prisma.product.findMany({
+    include: {
+      category: true,
+      subscriptionPlans: {
+        where: {
+          isActive: true
+        },
+        orderBy: [{ price: 'asc' }, { createdAt: 'asc' }]
+      }
+    },
+    orderBy: [{ type: 'asc' }, { name: 'asc' }]
+  });
+
+  return products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    type: product.type === 'SERVICE' ? 'service' : 'product',
+    price: Number(product.price),
+    unit: product.unit,
+    isDigital: product.isDigital,
+    deliveryUrl: product.deliveryUrl,
+    categoryName: product.category.name,
+    plans: product.subscriptionPlans.map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      description: plan.description,
+      interval: plan.interval,
+      price: Number(plan.price)
+    }))
+  }));
 }
 
 async function getPortalIdentity(): Promise<{

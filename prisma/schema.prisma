@@ -80,6 +80,8 @@ model Client {
   subscriptions ClientSubscription[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+
+  @@index([status, updatedAt])
 }
 
 enum ClientStatus {
@@ -109,6 +111,7 @@ model Quotation {
   updatedAt  DateTime        @updatedAt
 
   @@index([clientId])
+  @@index([clientId, status, createdAt])
 }
 
 model QuotationItem {
@@ -155,6 +158,7 @@ model Project {
   updatedAt   DateTime      @updatedAt
 
   @@index([clientId])
+  @@index([clientId, status, updatedAt])
 }
 
 enum ProjectStatus {
@@ -189,6 +193,9 @@ model Invoice {
   @@index([clientId])
   @@index([projectId])
   @@index([subscriptionId])
+  @@index([clientId, status, createdAt])
+  @@index([clientId, dueDate])
+  @@index([subscriptionId, dueDate])
 }
 
 enum InvoiceStatus {
@@ -212,6 +219,7 @@ model Payment {
   createdAt DateTime @default(now())
 
   @@index([invoiceId])
+  @@index([invoiceId, paidAt])
 }
 
 model Expense {
@@ -228,6 +236,7 @@ model Expense {
   createdAt   DateTime @default(now())
 
   @@index([projectId])
+  @@index([projectId, date])
 }
 
 model SubscriptionPlan {
@@ -245,6 +254,7 @@ model SubscriptionPlan {
   updatedAt     DateTime             @updatedAt
 
   @@index([serviceId])
+  @@index([serviceId, isActive])
 }
 
 model ClientSubscription {
@@ -269,6 +279,8 @@ model ClientSubscription {
   @@index([clientId])
   @@index([planId])
   @@index([projectId])
+  @@index([clientId, status, createdAt])
+  @@index([status, nextBillingDate])
 }
 
 enum SubscriptionInterval {

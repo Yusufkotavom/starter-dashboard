@@ -583,6 +583,30 @@ const mutation = useMutation({
 - Server component: `searchParamsCache.get('page')`
 - Client component: `useQueryStates({ page: parseAsInteger.withDefault(1), ... })`
 
+### Portal / Customer Performance Pattern
+
+Portal and customer-facing pages must use **lean, page-specific queries**. Do not reuse a single
+`include`-heavy helper across overview, invoices, quotations, projects, subscriptions, and digital
+access.
+
+Rules:
+
+1. Use **one helper per page surface** (for example `getPortalInvoicesPageData`, not one giant
+   `getPortalClientContext` for everything).
+2. Prefer `select` over `include` unless the full relation is truly needed.
+3. Paginate list surfaces by default (`take` / `skip` or equivalent). Do not `findMany()` the full
+   client history for portal pages.
+4. Overview pages should use **counts + small aggregates**, not full record hydration.
+5. Keep document/detail pages separate from list pages. A list page should not load the full
+   document tree just to show a row summary.
+6. Add Prisma indexes whenever a new access pattern becomes standard:
+   - tenant/client foreign key + status + createdAt
+   - recurring scheduler status + nextBillingDate
+   - timeline-style foreign key + date
+
+If a new page starts from "load the entire client graph and filter in memory", that is the wrong
+pattern for this repo.
+
 ---
 
 ## Theming System
