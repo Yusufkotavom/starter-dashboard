@@ -1,25 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { mapInvoiceRecord } from '@/lib/agency';
+import { buildInvoiceDocument } from '@/lib/agency-workflows';
 import type { InvoiceMutationPayload } from '@/features/invoices/api/types';
 
 type Params = { params: Promise<{ id: string }> };
-
-function normalizeInvoicePayload(body: InvoiceMutationPayload): Prisma.InvoiceUncheckedUpdateInput {
-  return {
-    number: body.number.trim(),
-    clientId: body.clientId,
-    projectId: body.projectId ?? null,
-    status: body.status,
-    subtotal: new Prisma.Decimal(body.total),
-    tax: new Prisma.Decimal(0),
-    total: new Prisma.Decimal(body.total),
-    dueDate: body.dueDate ? new Date(body.dueDate) : null,
-    paidAt: body.paidAt ? new Date(body.paidAt) : null,
-    notes: body.notes?.trim() || null
-  };
-}
 
 export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
@@ -40,9 +25,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const body = (await request.json()) as InvoiceMutationPayload;
 
   try {
+    const existing = await prisma.invoice.findUnique({
+      where: { id: Number(id) },
+      select: { number: true }
+    });
+    if (!existing) {
+      return NextResponse.json({ message: `Invoice with ID ${id} not found` }, { status: 404 });
+    }
+
     const invoice = await prisma.invoice.update({
       where: { id: Number(id) },
-      data: normalizeInvoicePayload(body),
+      data: await buildInvoiceDocument(prisma, body, existing.number),
       include: { client: true, project: true, payments: { select: { amount: true } } }
     });
 

@@ -2,22 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { buildInvoiceOrderBy, mapInvoiceRecord } from '@/lib/agency';
+import { buildInvoiceDocument } from '@/lib/agency-workflows';
 import type { InvoiceMutationPayload } from '@/features/invoices/api/types';
-
-function normalizeInvoicePayload(body: InvoiceMutationPayload): Prisma.InvoiceUncheckedCreateInput {
-  return {
-    number: body.number.trim(),
-    clientId: body.clientId,
-    projectId: body.projectId ?? null,
-    status: body.status,
-    subtotal: new Prisma.Decimal(body.total),
-    tax: new Prisma.Decimal(0),
-    total: new Prisma.Decimal(body.total),
-    dueDate: body.dueDate ? new Date(body.dueDate) : null,
-    paidAt: body.paidAt ? new Date(body.paidAt) : null,
-    notes: body.notes?.trim() || null
-  };
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -62,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as InvoiceMutationPayload;
   const created = await prisma.invoice.create({
-    data: normalizeInvoicePayload(body),
+    data: await buildInvoiceDocument(prisma, body),
     include: { client: true, project: true, payments: { select: { amount: true } } }
   });
 

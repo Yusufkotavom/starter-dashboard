@@ -31,7 +31,7 @@ export interface QuotationsResponse {
 }
 
 export interface QuotationMutationPayload {
-  number: string;
+  number?: string | null;
   clientId: number;
   serviceIds?: number[];
   status: QuotationStatus;

@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -75,6 +77,19 @@ export default function PaymentForm({
     }
   });
 
+  const selectedInvoiceId = useStore(form.store, (state) => state.values.invoiceId);
+  const selectedAmount = useStore(form.store, (state) => state.values.amount);
+  const selectedInvoice =
+    invoiceData?.items.find((invoice) => invoice.id === selectedInvoiceId) ?? null;
+
+  useEffect(() => {
+    if (!selectedInvoice) return;
+
+    if (!isEdit || selectedInvoice.id !== initialData?.invoiceId || selectedAmount === 0) {
+      form.setFieldValue('amount', selectedInvoice.balanceDue);
+    }
+  }, [form, initialData?.invoiceId, isEdit, selectedAmount, selectedInvoice]);
+
   const { FormTextField, FormSelectField, FormTextareaField } = useFormFields<PaymentFormValues>();
 
   return (
@@ -86,6 +101,20 @@ export default function PaymentForm({
         <form.AppForm>
           <form.Form className='space-y-6'>
             <FormSelectField name='invoiceId' label='Invoice' required options={invoiceOptions} />
+
+            {selectedInvoice ? (
+              <div className='rounded-lg border bg-muted/30 p-4 text-sm'>
+                <div className='font-medium'>Invoice balance</div>
+                <div className='text-muted-foreground mt-1'>
+                  {selectedInvoice.number} for {selectedInvoice.clientName}
+                </div>
+                <div className='text-muted-foreground mt-1'>
+                  Paid {selectedInvoice.paidAmount.toLocaleString('id-ID')} of{' '}
+                  {selectedInvoice.total.toLocaleString('id-ID')}. Remaining balance:{' '}
+                  {selectedInvoice.balanceDue.toLocaleString('id-ID')}.
+                </div>
+              </div>
+            ) : null}
 
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
               <FormTextField name='amount' label='Amount' required type='number' />

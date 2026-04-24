@@ -7,6 +7,8 @@ export interface Project {
   clientName: string;
   clientCompany: string | null;
   quotationId: number | null;
+  quotationNumber: string | null;
+  quotationTotal: number | null;
   status: ProjectStatus;
   startDate: string | null;
   endDate: string | null;

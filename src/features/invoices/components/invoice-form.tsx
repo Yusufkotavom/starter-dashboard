@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -38,7 +40,7 @@ export default function InvoiceForm({
     { value: 0, label: 'No linked project' },
     ...(projectData?.items.map((project) => ({
       value: project.id,
-      label: project.name
+      label: `${project.name} - ${project.clientCompany ?? project.clientName}`
     })) ?? [])
   ];
 
@@ -89,6 +91,22 @@ export default function InvoiceForm({
     }
   });
 
+  const selectedProjectId = useStore(form.store, (state) => state.values.projectId);
+  const selectedProject =
+    projectData?.items.find((project) => project.id === selectedProjectId) ?? null;
+
+  useEffect(() => {
+    if (!selectedProject) return;
+
+    form.setFieldValue('clientId', selectedProject.clientId);
+    if (!isEdit || selectedProject.id !== initialData?.projectId || !initialData?.total) {
+      form.setFieldValue(
+        'total',
+        selectedProject.quotationTotal ?? selectedProject.budget ?? initialData?.total ?? 0
+      );
+    }
+  }, [form, initialData?.projectId, initialData?.total, isEdit, selectedProject]);
+
   const { FormTextField, FormSelectField, FormTextareaField } = useFormFields<InvoiceFormValues>();
 
   return (
@@ -100,7 +118,11 @@ export default function InvoiceForm({
         <form.AppForm>
           <form.Form className='space-y-6'>
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-              <FormTextField name='number' label='Invoice Number' required />
+              <FormTextField
+                name='number'
+                label='Invoice Number'
+                placeholder='Auto generated on save'
+              />
               <FormSelectField name='clientId' label='Client' required options={clientOptions} />
             </div>
 
@@ -114,6 +136,26 @@ export default function InvoiceForm({
               />
               <FormTextField name='total' label='Total Amount' required type='number' />
             </div>
+
+            {selectedProject ? (
+              <div className='rounded-lg border bg-muted/30 p-4 text-sm'>
+                <div className='font-medium'>Linked project details</div>
+                <div className='text-muted-foreground mt-1'>
+                  {selectedProject.name} for{' '}
+                  {selectedProject.clientCompany ?? selectedProject.clientName}
+                </div>
+                <div className='text-muted-foreground mt-1'>
+                  Invoice total defaults to{' '}
+                  {(selectedProject.quotationTotal ?? selectedProject.budget ?? 0).toLocaleString(
+                    'id-ID'
+                  )}
+                  {selectedProject.quotationNumber
+                    ? ` from ${selectedProject.quotationNumber}`
+                    : ' from project budget'}
+                  .
+                </div>
+              </div>
+            ) : null}
 
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
               <FormTextField name='dueDate' label='Due Date' type='date' />

@@ -1,32 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { mapQuotationRecord } from '@/lib/agency';
+import { buildQuotationDocument } from '@/lib/agency-workflows';
 import type { QuotationMutationPayload } from '@/features/quotations/api/types';
 
 type Params = { params: Promise<{ id: string }> };
-
-async function buildQuotationItems(total: number, itemsCount: number, serviceIds?: number[]) {
-  const normalizedServiceIds = [...new Set((serviceIds ?? []).filter((id) => id > 0))];
-  const services =
-    normalizedServiceIds.length > 0
-      ? await prisma.product.findMany({ where: { id: { in: normalizedServiceIds } } })
-      : [];
-  const safeCount = Math.max(itemsCount, services.length, 1);
-  const unitAmount = Number((total / safeCount).toFixed(2));
-
-  return Array.from({ length: safeCount }, (_, index) => {
-    const service = services[index];
-
-    return {
-      productId: service?.id ?? null,
-      description: service?.name ?? `Service line ${index + 1}`,
-      qty: new Prisma.Decimal(1),
-      unitPrice: new Prisma.Decimal(unitAmount),
-      amount: new Prisma.Decimal(unitAmount)
-    };
-  });
-}
 
 export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
@@ -51,21 +29,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const body = (await request.json()) as QuotationMutationPayload;
 
   try {
+    const existing = await prisma.quotation.findUnique({
+      where: { id: Number(id) },
+      select: { number: true }
+    });
+    if (!existing) {
+      return NextResponse.json({ message: `Quotation with ID ${id} not found` }, { status: 404 });
+    }
+    const payload = await buildQuotationDocument(prisma, body, existing.number);
+
     const quotation = await prisma.quotation.update({
       where: { id: Number(id) },
       data: {
-        number: body.number.trim(),
-        clientId: body.clientId,
-        status: body.status,
-        subtotal: new Prisma.Decimal(body.total),
-        tax: new Prisma.Decimal(0),
-        discount: new Prisma.Decimal(0),
-        total: new Prisma.Decimal(body.total),
-        validUntil: body.validUntil ? new Date(body.validUntil) : null,
-        notes: body.notes?.trim() || null,
+        ...payload,
         items: {
           deleteMany: {},
-          create: await buildQuotationItems(body.total, body.itemsCount, body.serviceIds)
+          create: payload.items?.create ?? []
         }
       },
       include: {

@@ -2,48 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma, QuotationStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { buildQuotationOrderBy, mapQuotationRecord } from '@/lib/agency';
+import { buildQuotationDocument } from '@/lib/agency-workflows';
 import type { QuotationMutationPayload } from '@/features/quotations/api/types';
-
-async function buildQuotationItems(total: number, itemsCount: number, serviceIds?: number[]) {
-  const normalizedServiceIds = [...new Set((serviceIds ?? []).filter((id) => id > 0))];
-  const services =
-    normalizedServiceIds.length > 0
-      ? await prisma.product.findMany({ where: { id: { in: normalizedServiceIds } } })
-      : [];
-  const safeCount = Math.max(itemsCount, services.length, 1);
-  const unitAmount = Number((total / safeCount).toFixed(2));
-
-  return Array.from({ length: safeCount }, (_, index) => {
-    const service = services[index];
-
-    return {
-      productId: service?.id ?? null,
-      description: service?.name ?? `Service line ${index + 1}`,
-      qty: new Prisma.Decimal(1),
-      unitPrice: new Prisma.Decimal(unitAmount),
-      amount: new Prisma.Decimal(unitAmount)
-    };
-  });
-}
-
-async function normalizeQuotationPayload(
-  body: QuotationMutationPayload
-): Promise<Prisma.QuotationUncheckedCreateInput> {
-  return {
-    number: body.number.trim(),
-    clientId: body.clientId,
-    status: body.status,
-    subtotal: new Prisma.Decimal(body.total),
-    tax: new Prisma.Decimal(0),
-    discount: new Prisma.Decimal(0),
-    total: new Prisma.Decimal(body.total),
-    validUntil: body.validUntil ? new Date(body.validUntil) : null,
-    notes: body.notes?.trim() || null,
-    items: {
-      create: await buildQuotationItems(body.total, body.itemsCount, body.serviceIds)
-    }
-  };
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -92,7 +52,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as QuotationMutationPayload;
   const created = await prisma.quotation.create({
-    data: await normalizeQuotationPayload(body),
+    data: await buildQuotationDocument(prisma, body),
     include: {
       client: true,
       _count: { select: { items: true } },

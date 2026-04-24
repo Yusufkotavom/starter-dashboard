@@ -31,6 +31,7 @@ model Product {
   categorySlug String
   category     Category    @relation(fields: [categorySlug], references: [slug], onDelete: Restrict, onUpdate: Cascade)
   quotationItems QuotationItem[]
+  subscriptionPlans SubscriptionPlan[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -56,6 +57,7 @@ model Client {
   quotations Quotation[]
   projects   Project[]
   invoices   Invoice[]
+  subscriptions ClientSubscription[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
@@ -128,6 +130,7 @@ model Project {
   notes       String?
   invoices    Invoice[]
   expenses    Expense[]
+  subscriptions ClientSubscription[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -150,6 +153,8 @@ model Invoice {
   client    Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
   projectId Int?
   project   Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  subscriptionId Int?
+  subscription ClientSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   status    InvoiceStatus @default(DRAFT)
   subtotal  Decimal       @default(0) @db.Decimal(15, 2)
   tax       Decimal       @default(0) @db.Decimal(15, 2)
@@ -163,6 +168,7 @@ model Invoice {
 
   @@index([clientId])
   @@index([projectId])
+  @@index([subscriptionId])
 }
 
 enum InvoiceStatus {
@@ -202,4 +208,59 @@ model Expense {
   createdAt   DateTime @default(now())
 
   @@index([projectId])
+}
+
+model SubscriptionPlan {
+  id            Int                  @id @default(autoincrement())
+  name          String
+  slug          String               @unique
+  description   String?
+  serviceId     Int?
+  service       Product?             @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  price         Decimal              @db.Decimal(15, 2)
+  interval      SubscriptionInterval @default(MONTHLY)
+  isActive      Boolean              @default(true)
+  subscriptions ClientSubscription[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([serviceId])
+}
+
+model ClientSubscription {
+  id              Int                @id @default(autoincrement())
+  clientId        Int
+  client          Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  planId          Int
+  plan            SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  projectId       Int?
+  project         Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  status          SubscriptionStatus @default(ACTIVE)
+  startDate       DateTime
+  nextBillingDate DateTime?
+  endDate         DateTime?
+  autoRenew       Boolean            @default(true)
+  priceOverride   Decimal?           @db.Decimal(15, 2)
+  notes           String?
+  invoices        Invoice[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([clientId])
+  @@index([planId])
+  @@index([projectId])
+}
+
+enum SubscriptionInterval {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
 }

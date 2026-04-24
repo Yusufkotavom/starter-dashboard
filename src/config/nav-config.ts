@@ -146,6 +146,14 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Subscriptions',
+        url: '/dashboard/subscriptions',
+        icon: 'creditCard',
+        shortcut: ['s', 'u'],
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Expenses',
         url: '/dashboard/expenses',
         icon: 'trendingDown',

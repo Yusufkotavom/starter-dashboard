@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const invoiceSchema = z.object({
-  number: z.string().min(3, 'Invoice number is required.'),
+  number: z.string().optional().default(''),
   clientId: z.number({ message: 'Client is required.' }).int().positive(),
   projectId: z.number().int().min(0),
   status: z.enum(['DRAFT', 'SENT', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED']),

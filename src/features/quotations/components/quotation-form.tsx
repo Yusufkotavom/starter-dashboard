@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useStore } from '@tanstack/react-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -89,6 +91,22 @@ export default function QuotationForm({
     }
   });
 
+  const selectedServiceIds = useStore(form.store, (state) => state.values.serviceIds ?? []);
+  const selectedServices = serviceOptions.filter((service) =>
+    selectedServiceIds.includes(service.value)
+  );
+  const computedTotal = selectedServices.reduce((sum, service) => {
+    const product = productData?.products.find((item) => item.id === service.value);
+    return sum + Number(product?.price ?? 0);
+  }, 0);
+
+  useEffect(() => {
+    if (selectedServiceIds.length === 0) return;
+
+    form.setFieldValue('itemsCount', selectedServiceIds.length);
+    form.setFieldValue('total', computedTotal);
+  }, [computedTotal, form, selectedServiceIds]);
+
   const { FormTextField, FormSelectField, FormTextareaField } =
     useFormFields<QuotationFormValues>();
 
@@ -101,7 +119,11 @@ export default function QuotationForm({
         <form.AppForm>
           <form.Form className='space-y-6'>
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-              <FormTextField name='number' label='Quotation Number' required />
+              <FormTextField
+                name='number'
+                label='Quotation Number'
+                placeholder='Auto generated on save'
+              />
               <FormSelectField name='clientId' label='Client' required options={clientOptions} />
             </div>
 
@@ -150,6 +172,30 @@ export default function QuotationForm({
               }}
             />
 
+            {selectedServices.length > 0 ? (
+              <div className='rounded-lg border bg-muted/30 p-4'>
+                <div className='font-medium'>Linked service pricing</div>
+                <div className='text-muted-foreground mt-1 text-sm'>
+                  Total and line count follow the selected service catalog items.
+                </div>
+                <div className='mt-3 space-y-2 text-sm'>
+                  {selectedServices.map((service) => {
+                    const product = productData?.products.find((item) => item.id === service.value);
+                    return (
+                      <div key={service.value} className='flex items-center justify-between'>
+                        <span>{service.label}</span>
+                        <span>{Number(product?.price ?? 0).toLocaleString('id-ID')}</span>
+                      </div>
+                    );
+                  })}
+                  <div className='flex items-center justify-between border-t pt-2 font-medium'>
+                    <span>Total</span>
+                    <span>{computedTotal.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
               <FormSelectField
                 name='status'
@@ -157,8 +203,20 @@ export default function QuotationForm({
                 required
                 options={QUOTATION_STATUS_OPTIONS}
               />
-              <FormTextField name='total' label='Total Amount' required type='number' />
-              <FormTextField name='itemsCount' label='Line Items' required type='number' />
+              <FormTextField
+                name='total'
+                label='Total Amount'
+                required
+                type='number'
+                readOnly={selectedServices.length > 0}
+              />
+              <FormTextField
+                name='itemsCount'
+                label='Line Items'
+                required
+                type='number'
+                readOnly={selectedServices.length > 0}
+              />
             </div>
 
             <FormTextField name='validUntil' label='Valid Until' type='date' />

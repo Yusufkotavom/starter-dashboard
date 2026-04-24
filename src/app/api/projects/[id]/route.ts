@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { mapProjectRecord } from '@/lib/agency';
+import { buildProjectDocument } from '@/lib/agency-workflows';
 import type { ProjectMutationPayload } from '@/features/projects/api/types';
 
 type Params = { params: Promise<{ id: string }> };
-
-function normalizeProjectPayload(body: ProjectMutationPayload): Prisma.ProjectUncheckedUpdateInput {
-  return {
-    name: body.name.trim(),
-    clientId: body.clientId,
-    quotationId: body.quotationId ?? null,
-    status: body.status,
-    startDate: body.startDate ? new Date(body.startDate) : null,
-    endDate: body.endDate ? new Date(body.endDate) : null,
-    budget:
-      body.budget === null || body.budget === undefined ? null : new Prisma.Decimal(body.budget),
-    notes: body.notes?.trim() || null
-  };
-}
 
 export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const project = await prisma.project.findUnique({
     where: { id: Number(id) },
-    include: { client: true }
+    include: { client: true, quotation: true }
   });
 
   if (!project) {
@@ -41,8 +27,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const project = await prisma.project.update({
       where: { id: Number(id) },
-      data: normalizeProjectPayload(body),
-      include: { client: true }
+      data: await buildProjectDocument(prisma, body),
+      include: { client: true, quotation: true }
     });
 
     return NextResponse.json(mapProjectRecord(project));

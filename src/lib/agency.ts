@@ -9,7 +9,7 @@ import type { Expense } from '@/features/expenses/api/types';
 
 type ClientRecord = Prisma.ClientGetPayload<Record<string, never>>;
 type ProjectRecord = Prisma.ProjectGetPayload<{
-  include: { client: true };
+  include: { client: true; quotation: true };
 }>;
 type QuotationRecord = Prisma.QuotationGetPayload<{
   include: {
@@ -51,6 +51,8 @@ export function mapProjectRecord(record: ProjectRecord): Project {
     clientName: record.client.name,
     clientCompany: record.client.company,
     quotationId: record.quotationId,
+    quotationNumber: record.quotation?.number ?? null,
+    quotationTotal: record.quotation ? Number(record.quotation.total) : null,
     status: record.status,
     startDate: record.startDate?.toISOString() ?? null,
     endDate: record.endDate?.toISOString() ?? null,

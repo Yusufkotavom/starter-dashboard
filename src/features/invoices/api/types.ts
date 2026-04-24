@@ -32,7 +32,7 @@ export interface InvoicesResponse {
 }
 
 export interface InvoiceMutationPayload {
-  number: string;
+  number?: string | null;
   clientId: number;
   projectId?: number | null;
   status: InvoiceStatus;

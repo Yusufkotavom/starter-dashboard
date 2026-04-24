@@ -33,7 +33,7 @@ export default async function ReportsPage() {
       .then((items) => items.map(mapInvoiceRecord)),
     prisma.project
       .findMany({
-        include: { client: true },
+        include: { client: true, quotation: true },
         orderBy: { updatedAt: 'desc' },
         take: 5
       })

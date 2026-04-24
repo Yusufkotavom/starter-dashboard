@@ -4,7 +4,9 @@ import {
   ClientStatus,
   QuotationStatus,
   ProjectStatus,
-  InvoiceStatus
+  InvoiceStatus,
+  SubscriptionInterval,
+  SubscriptionStatus
 } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -79,6 +81,25 @@ const products = [
   }
 ];
 
+const subscriptionPlans = [
+  {
+    name: 'SEO Retainer',
+    slug: 'seo-retainer',
+    description: 'Monthly SEO retainer with reporting and optimization.',
+    serviceName: 'Monthly SEO Management',
+    price: '3500000',
+    interval: SubscriptionInterval.MONTHLY
+  },
+  {
+    name: 'Support Retainer',
+    slug: 'support-retainer',
+    description: 'Quarterly support and maintenance retainer for active websites.',
+    serviceName: 'Company Profile Website',
+    price: '4500000',
+    interval: SubscriptionInterval.QUARTERLY
+  }
+];
+
 // ── Clients ───────────────────────────────────────────────────────
 
 const clients = [
@@ -132,6 +153,31 @@ async function main() {
     });
   }
   log(`  ✅ ${products.length} products/services`);
+
+  for (const plan of subscriptionPlans) {
+    const linkedService = await prisma.product.findFirst({ where: { name: plan.serviceName } });
+    await prisma.subscriptionPlan.upsert({
+      where: { slug: plan.slug },
+      update: {
+        name: plan.name,
+        description: plan.description,
+        serviceId: linkedService?.id ?? null,
+        price: plan.price,
+        interval: plan.interval,
+        isActive: true
+      },
+      create: {
+        name: plan.name,
+        slug: plan.slug,
+        description: plan.description,
+        serviceId: linkedService?.id ?? null,
+        price: plan.price,
+        interval: plan.interval,
+        isActive: true
+      }
+    });
+  }
+  log(`  ✅ ${subscriptionPlans.length} recurring plans`);
 
   // Clients
   for (const client of clients) {
@@ -214,6 +260,86 @@ async function main() {
       log('  ✅ 1 quotation (APPROVED) + 1 project (ACTIVE) + 1 invoice (SENT)');
     } else {
       log('  ℹ️  Sample data already exists, skipped');
+    }
+  }
+
+  const seoPlan = await prisma.subscriptionPlan.findUnique({ where: { slug: 'seo-retainer' } });
+  const startupClient = await prisma.client.findUnique({ where: { email: 'siti@startupkita.id' } });
+
+  if (seoPlan && startupClient) {
+    const existingSubscription = await prisma.clientSubscription.findFirst({
+      where: {
+        clientId: startupClient.id,
+        planId: seoPlan.id
+      }
+    });
+
+    if (!existingSubscription) {
+      const subscription = await prisma.clientSubscription.create({
+        data: {
+          clientId: startupClient.id,
+          planId: seoPlan.id,
+          status: SubscriptionStatus.ACTIVE,
+          startDate: new Date('2026-04-01'),
+          nextBillingDate: new Date('2026-05-01'),
+          autoRenew: true,
+          priceOverride: '3500000',
+          notes: 'Monthly SEO retainer for Startup Kita.'
+        }
+      });
+
+      await prisma.invoice.upsert({
+        where: { number: 'INV-2026-SEO-001' },
+        update: {
+          clientId: startupClient.id,
+          subscriptionId: subscription.id,
+          status: InvoiceStatus.PARTIAL,
+          subtotal: '3500000',
+          tax: '0',
+          total: '3500000',
+          dueDate: new Date('2026-04-10'),
+          notes: 'April recurring SEO retainer'
+        },
+        create: {
+          number: 'INV-2026-SEO-001',
+          clientId: startupClient.id,
+          subscriptionId: subscription.id,
+          status: InvoiceStatus.PARTIAL,
+          subtotal: '3500000',
+          tax: '0',
+          total: '3500000',
+          dueDate: new Date('2026-04-10'),
+          notes: 'April recurring SEO retainer'
+        }
+      });
+
+      const recurringInvoice = await prisma.invoice.findUnique({
+        where: { number: 'INV-2026-SEO-001' }
+      });
+
+      if (recurringInvoice) {
+        const existingPayment = await prisma.payment.findFirst({
+          where: {
+            invoiceId: recurringInvoice.id,
+            reference: 'SEO-APRIL-PARTIAL'
+          }
+        });
+
+        if (!existingPayment) {
+          await prisma.payment.create({
+            data: {
+              invoiceId: recurringInvoice.id,
+              amount: '1500000',
+              method: 'BANK_TRANSFER',
+              reference: 'SEO-APRIL-PARTIAL',
+              paidAt: new Date('2026-04-05'),
+              notes: 'First partial payment for April retainer.'
+            }
+          });
+        }
+      }
+
+      log('  ✅ 1 active recurring subscription + 1 recurring invoice');
     }
   }
 
