@@ -4,8 +4,7 @@ import {
   SubscriptionStatus,
   type Prisma
 } from '@prisma/client';
-import { isDocumentNumberConflict } from '@/lib/agency-workflows';
-import { getAppSettings } from '@/lib/app-settings';
+import { generateRunningNumber, isDocumentNumberConflict } from '@/lib/agency-workflows';
 import { prisma } from '@/lib/prisma';
 
 type DbClient = typeof prisma | Prisma.TransactionClient;
@@ -34,23 +33,6 @@ function addInterval(date: Date, interval: SubscriptionInterval): Date {
 
   next.setUTCMonth(next.getUTCMonth() + 1);
   return next;
-}
-
-async function generateInvoiceNumber(db: DbClient): Promise<string> {
-  const year = new Date().getUTCFullYear();
-  const settings = await getAppSettings();
-  const prefix = `${settings.invoicePrefix}-${year}-`;
-  const latest = await db.invoice.findFirst({
-    where: { number: { startsWith: prefix } },
-    orderBy: { number: 'desc' },
-    select: { number: true }
-  });
-  const currentSequence = latest?.number
-    ? Number.parseInt(latest.number.split('-').at(-1) ?? '0', 10)
-    : 0;
-  const nextSequence = Number.isFinite(currentSequence) ? currentSequence + 1 : 1;
-
-  return `INV-${year}-${String(nextSequence).padStart(4, '0')}`;
 }
 
 export interface RecurringInvoiceRunResult {
@@ -105,7 +87,11 @@ export async function runRecurringInvoiceBilling(
     const total = subscription.priceOverride ?? subscription.plan.price;
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
-        const invoiceNumber = await generateInvoiceNumber(db);
+        const invoiceNumber = await generateRunningNumber(
+          db,
+          'invoice',
+          (subscription as { organizationId?: string | null }).organizationId ?? null
+        );
 
         const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
           organizationId:

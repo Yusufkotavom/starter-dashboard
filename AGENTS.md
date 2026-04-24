@@ -605,6 +605,11 @@ Rules:
    - timeline-style foreign key + date
 7. Cache only low-churn shared reads such as company settings or published catalog data. If cached
    data can be mutated from the app, pair it with explicit invalidation in the matching write path.
+8. Agency-domain models must be workspace-aware. When adding a new agency table or query, include
+   `organizationId` scoping and keep read access compatible with legacy `null` rows while the repo
+   is in migration.
+9. Document numbering must use the `DocumentSequence` counter pattern. Do not scan the latest
+   invoice/quotation number in hot write paths.
 
 If a new page starts from "load the entire client graph and filter in memory", that is the wrong
 pattern for this repo.

@@ -26,6 +26,24 @@ model AppSettings {
   updatedAt            DateTime @updatedAt
 }
 
+model DocumentSequence {
+  id        Int                  @id @default(autoincrement())
+  scopeKey  String
+  type      DocumentSequenceType
+  year      Int
+  lastValue Int                  @default(0)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@unique([scopeKey, type, year])
+  @@index([type, year])
+}
+
+enum DocumentSequenceType {
+  QUOTATION
+  INVOICE
+}
+
 // ─── Existing: Product Catalog (unchanged) ───────────────────────────
 
 model Category {

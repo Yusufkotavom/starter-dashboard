@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       response = await prisma.$transaction(async (tx) => {
         const quotationData: Prisma.QuotationUncheckedCreateInput = {
           organizationId: clientOrganizationId,
-          number: await generateRunningNumber(tx, 'quotation'),
+          number: await generateRunningNumber(tx, 'quotation', clientOrganizationId),
           clientId: client.id,
           status: 'APPROVED',
           subtotal: new Prisma.Decimal(amount),
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
 
         const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
           organizationId: clientOrganizationId,
-          number: await generateRunningNumber(tx, 'invoice'),
+          number: await generateRunningNumber(tx, 'invoice', clientOrganizationId),
           clientId: client.id,
           projectId: project.id,
           subscriptionId,

@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { DocumentSequenceType, Prisma, type PrismaClient } from '@prisma/client';
 import type { InvoiceMutationPayload } from '@/features/invoices/api/types';
 import type { ProjectMutationPayload } from '@/features/projects/api/types';
 import type { QuotationMutationPayload } from '@/features/quotations/api/types';
@@ -29,9 +29,13 @@ function normalizeNumberInput(value?: string | null): string | null {
 
 export async function generateRunningNumber(
   db: DbClient,
-  type: 'quotation' | 'invoice'
+  type: 'quotation' | 'invoice',
+  organizationId?: string | null
 ): Promise<string> {
   const year = new Date().getUTCFullYear();
+  const scopeKey = organizationId?.trim() || 'global';
+  const sequenceType =
+    type === 'quotation' ? DocumentSequenceType.QUOTATION : DocumentSequenceType.INVOICE;
   const settings = await db.appSettings.findUnique({
     where: { id: 1 },
     select: { invoicePrefix: true, quotationPrefix: true }
@@ -40,26 +44,31 @@ export async function generateRunningNumber(
     type === 'quotation'
       ? settings?.quotationPrefix?.trim().toUpperCase() || 'QUO'
       : settings?.invoicePrefix?.trim().toUpperCase() || 'INV';
-  const pattern = `${prefix}-${year}-`;
-  const latest =
-    type === 'quotation'
-      ? await db.quotation.findFirst({
-          where: { number: { startsWith: pattern } },
-          orderBy: { number: 'desc' },
-          select: { number: true }
-        })
-      : await db.invoice.findFirst({
-          where: { number: { startsWith: pattern } },
-          orderBy: { number: 'desc' },
-          select: { number: true }
-        });
+  const sequence = await db.documentSequence.upsert({
+    where: {
+      scopeKey_type_year: {
+        scopeKey,
+        type: sequenceType,
+        year
+      }
+    },
+    create: {
+      scopeKey,
+      type: sequenceType,
+      year,
+      lastValue: 1
+    },
+    update: {
+      lastValue: {
+        increment: 1
+      }
+    },
+    select: {
+      lastValue: true
+    }
+  });
 
-  const currentSequence = latest?.number
-    ? Number.parseInt(latest.number.split('-').at(-1) ?? '0', 10)
-    : 0;
-  const nextSequence = Number.isFinite(currentSequence) ? currentSequence + 1 : 1;
-
-  return `${prefix}-${year}-${String(nextSequence).padStart(4, '0')}`;
+  return `${prefix}-${year}-${String(sequence.lastValue).padStart(4, '0')}`;
 }
 
 export async function buildQuotationDocument(
@@ -123,7 +132,7 @@ export async function buildQuotationDocument(
   const documentNumber =
     normalizeNumberInput(body.number) ??
     currentNumber ??
-    (await generateRunningNumber(db, 'quotation'));
+    (await generateRunningNumber(db, 'quotation', organizationId ?? null));
 
   return {
     organizationId: organizationId ?? null,
@@ -216,7 +225,7 @@ export async function buildInvoiceDocument(
   const documentNumber =
     normalizeNumberInput(body.number) ??
     currentNumber ??
-    (await generateRunningNumber(db, 'invoice'));
+    (await generateRunningNumber(db, 'invoice', organizationId ?? null));
 
   return {
     organizationId: organizationId ?? null,
