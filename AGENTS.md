@@ -603,6 +603,8 @@ Rules:
    - tenant/client foreign key + status + createdAt
    - recurring scheduler status + nextBillingDate
    - timeline-style foreign key + date
+7. Cache only low-churn shared reads such as company settings or published catalog data. If cached
+   data can be mutated from the app, pair it with explicit invalidation in the matching write path.
 
 If a new page starts from "load the entire client graph and filter in memory", that is the wrong
 pattern for this repo.

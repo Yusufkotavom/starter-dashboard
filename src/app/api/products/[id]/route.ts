@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { mapProductRecord } from '@/lib/catalog';
 import type { ProductMutationPayload } from '@/features/products/api/types';
 import { Prisma, ProductType, SubscriptionInterval } from '@prisma/client';
+import { invalidatePortalOrderCatalog } from '@/lib/customer-portal';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -181,6 +182,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
       }
     });
 
+    await invalidatePortalOrderCatalog();
+
     return NextResponse.json({
       success: true,
       message: 'Product updated successfully',
@@ -201,6 +204,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     await prisma.product.delete({
       where: { id: Number(id) }
     });
+
+    await invalidatePortalOrderCatalog();
 
     return NextResponse.json({
       success: true,

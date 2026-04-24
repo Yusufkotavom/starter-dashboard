@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { buildProductOrderBy, mapProductRecord } from '@/lib/catalog';
 import type { ProductMutationPayload } from '@/features/products/api/types';
 import { Prisma, ProductType, SubscriptionInterval } from '@prisma/client';
+import { invalidatePortalOrderCatalog } from '@/lib/customer-portal';
 
 function slugify(value: string): string {
   return value
@@ -200,6 +201,8 @@ export async function POST(request: NextRequest) {
       }
     }
   });
+
+  await invalidatePortalOrderCatalog();
 
   return NextResponse.json(
     {

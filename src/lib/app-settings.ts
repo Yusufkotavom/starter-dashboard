@@ -1,5 +1,8 @@
+import { revalidateTag, unstable_cache } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+
+const APP_SETTINGS_CACHE_TAG = 'app-settings';
 
 export interface AppSettingsSnapshot {
   companyName: string;
@@ -83,16 +86,30 @@ export function mapAppSettingsRecord(record: {
   };
 }
 
-export async function getAppSettings(): Promise<AppSettingsSnapshot> {
-  const record = await prisma.appSettings.findUnique({
-    where: { id: 1 }
-  });
+const getCachedAppSettings = unstable_cache(
+  async (): Promise<AppSettingsSnapshot> => {
+    const record = await prisma.appSettings.findUnique({
+      where: { id: 1 }
+    });
 
-  return record ? mapAppSettingsRecord(record) : getDefaultAppSettings();
+    return record ? mapAppSettingsRecord(record) : getDefaultAppSettings();
+  },
+  ['app-settings'],
+  {
+    tags: [APP_SETTINGS_CACHE_TAG]
+  }
+);
+
+export async function getAppSettings(): Promise<AppSettingsSnapshot> {
+  return getCachedAppSettings();
+}
+
+export async function invalidateAppSettingsCache(): Promise<void> {
+  revalidateTag(APP_SETTINGS_CACHE_TAG, 'max');
 }
 
 export async function saveAppSettings(input: AppSettingsInput): Promise<AppSettingsSnapshot> {
-  const record = await prisma.appSettings.upsert({
+  const savedRecord = await prisma.appSettings.upsert({
     where: { id: 1 },
     create: {
       id: 1,
@@ -125,5 +142,7 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
     }
   });
 
-  return mapAppSettingsRecord(record);
+  await invalidateAppSettingsCache();
+
+  return mapAppSettingsRecord(savedRecord);
 }

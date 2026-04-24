@@ -1,7 +1,10 @@
 import { currentUser } from '@clerk/nextjs/server';
+import { revalidateTag, unstable_cache } from 'next/cache';
 import { InvoiceStatus, Prisma, ProjectStatus, SubscriptionStatus } from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+
+const PORTAL_ORDER_CATALOG_CACHE_TAG = 'portal-order-catalog';
 
 export interface PortalCatalogPlan {
   id: number;
@@ -689,38 +692,52 @@ export async function getPortalDigitalAccessPageData(
   };
 }
 
-export async function getPortalOrderCatalog(): Promise<PortalCatalogProduct[]> {
-  const products = await prisma.product.findMany({
-    include: {
-      category: true,
-      subscriptionPlans: {
-        where: {
-          isActive: true
-        },
-        orderBy: [{ price: 'asc' }, { createdAt: 'asc' }]
-      }
-    },
-    orderBy: [{ type: 'asc' }, { name: 'asc' }]
-  });
+const getCachedPortalOrderCatalog = unstable_cache(
+  async (): Promise<PortalCatalogProduct[]> => {
+    const products = await prisma.product.findMany({
+      include: {
+        category: true,
+        subscriptionPlans: {
+          where: {
+            isActive: true
+          },
+          orderBy: [{ price: 'asc' }, { createdAt: 'asc' }]
+        }
+      },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }]
+    });
 
-  return products.map((product) => ({
-    id: product.id,
-    name: product.name,
-    description: product.description,
-    type: product.type === 'SERVICE' ? 'service' : 'product',
-    price: Number(product.price),
-    unit: product.unit,
-    isDigital: product.isDigital,
-    deliveryUrl: product.deliveryUrl,
-    categoryName: product.category.name,
-    plans: product.subscriptionPlans.map((plan) => ({
-      id: plan.id,
-      name: plan.name,
-      description: plan.description,
-      interval: plan.interval,
-      price: Number(plan.price)
-    }))
-  }));
+    return products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      type: product.type === 'SERVICE' ? 'service' : 'product',
+      price: Number(product.price),
+      unit: product.unit,
+      isDigital: product.isDigital,
+      deliveryUrl: product.deliveryUrl,
+      categoryName: product.category.name,
+      plans: product.subscriptionPlans.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        interval: plan.interval,
+        price: Number(plan.price)
+      }))
+    }));
+  },
+  ['portal-order-catalog'],
+  {
+    tags: [PORTAL_ORDER_CATALOG_CACHE_TAG]
+  }
+);
+
+export async function getPortalOrderCatalog(): Promise<PortalCatalogProduct[]> {
+  return getCachedPortalOrderCatalog();
+}
+
+export async function invalidatePortalOrderCatalog(): Promise<void> {
+  revalidateTag(PORTAL_ORDER_CATALOG_CACHE_TAG, 'max');
 }
 
 async function getPortalIdentity(): Promise<{
