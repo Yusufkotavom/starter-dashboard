@@ -62,6 +62,19 @@ export async function sendQuotation(id: number): Promise<{
   });
 }
 
+export async function sendQuotationViaWhatsApp(id: number): Promise<{
+  success: boolean;
+  provider: string;
+  messageId: string;
+  status: string;
+  documentUrl?: string;
+  conversationId?: number;
+}> {
+  return apiClient(`/quotations/${id}/send-whatsapp`, {
+    method: 'POST'
+  });
+}
+
 export async function markQuotationAsSent(id: number): Promise<{
   success: boolean;
   quotationId: number;

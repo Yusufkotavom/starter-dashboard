@@ -6,6 +6,7 @@ import {
   markInvoiceAsPaid,
   markInvoiceAsSent,
   sendInvoice,
+  sendInvoiceViaWhatsApp,
   updateInvoice
 } from './service';
 import { invoiceKeys } from './queries';
@@ -39,5 +40,10 @@ export const markInvoiceAsSentMutation = mutationOptions({
 
 export const markInvoiceAsPaidMutation = mutationOptions({
   mutationFn: (id: number) => markInvoiceAsPaid(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all })
+});
+
+export const sendInvoiceViaWhatsAppMutation = mutationOptions({
+  mutationFn: (id: number) => sendInvoiceViaWhatsApp(id),
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all })
 });

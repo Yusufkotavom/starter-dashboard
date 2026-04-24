@@ -31,7 +31,16 @@ type SettingsFormValues = {
   paymentAccountName: string;
   paymentAccountNumber: string;
   paymentQrisUrl: string;
+  whatsappProvider: 'EMULATOR' | 'BRIDGE';
+  whatsappBridgeUrl: string;
+  whatsappSessionName: string;
+  whatsappCountryCode: string;
 };
+
+const whatsappProviderOptions = [
+  { value: 'EMULATOR', label: 'Emulator' },
+  { value: 'BRIDGE', label: 'Bridge' }
+] as const;
 
 export default function SettingsForm() {
   const { data } = useSuspenseQuery(settingsQueryOptions());
@@ -58,7 +67,11 @@ export default function SettingsForm() {
       paymentBankName: data.paymentBankName ?? '',
       paymentAccountName: data.paymentAccountName ?? '',
       paymentAccountNumber: data.paymentAccountNumber ?? '',
-      paymentQrisUrl: data.paymentQrisUrl ?? ''
+      paymentQrisUrl: data.paymentQrisUrl ?? '',
+      whatsappProvider: data.whatsappProvider,
+      whatsappBridgeUrl: data.whatsappBridgeUrl ?? '',
+      whatsappSessionName: data.whatsappSessionName ?? '',
+      whatsappCountryCode: data.whatsappCountryCode
     } as SettingsFormValues,
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
@@ -66,7 +79,9 @@ export default function SettingsForm() {
         paymentBankName: value.paymentBankName || null,
         paymentAccountName: value.paymentAccountName || null,
         paymentAccountNumber: value.paymentAccountNumber || null,
-        paymentQrisUrl: value.paymentQrisUrl || null
+        paymentQrisUrl: value.paymentQrisUrl || null,
+        whatsappBridgeUrl: value.whatsappBridgeUrl || null,
+        whatsappSessionName: value.whatsappSessionName || null
       });
     }
   });
@@ -128,6 +143,41 @@ export default function SettingsForm() {
                 <FormTextField name='paymentAccountName' label='Account Name' />
                 <FormTextField name='paymentAccountNumber' label='Account Number' />
                 <FormTextField name='paymentQrisUrl' label='Mock QRIS URL' />
+              </div>
+            </div>
+
+            <div className='space-y-4'>
+              <div>
+                <h3 className='text-sm font-medium'>WhatsApp Channel</h3>
+                <p className='text-muted-foreground text-sm'>
+                  Configure how the dashboard talks to your WhatsApp Web bridge. Use emulator for
+                  local testing, then switch to bridge when your Baileys service is ready.
+                </p>
+              </div>
+
+              <div className='grid gap-4 md:grid-cols-2'>
+                <FormSelectField
+                  name='whatsappProvider'
+                  label='WhatsApp Provider'
+                  required
+                  options={whatsappProviderOptions}
+                />
+                <FormTextField
+                  name='whatsappCountryCode'
+                  label='Default Country Code'
+                  required
+                  placeholder='62'
+                />
+                <FormTextField
+                  name='whatsappBridgeUrl'
+                  label='Bridge URL'
+                  placeholder='https://your-wa-bridge.example.com'
+                />
+                <FormTextField
+                  name='whatsappSessionName'
+                  label='Session Name'
+                  placeholder='agency-main'
+                />
               </div>
             </div>
 

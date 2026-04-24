@@ -19,7 +19,8 @@ import {
   approveQuotationMutation,
   deleteQuotationMutation,
   markQuotationAsSentMutation,
-  sendQuotationMutation
+  sendQuotationMutation,
+  sendQuotationViaWhatsAppMutation
 } from '../../api/mutations';
 import type { Quotation } from '../../api/types';
 
@@ -48,6 +49,19 @@ export function CellAction({ data }: CellActionProps) {
       toast.success(`Quotation sent via ${result.provider}`);
     },
     onError: () => toast.error('Failed to send quotation')
+  });
+
+  const sendWhatsAppMutation = useMutation({
+    ...sendQuotationViaWhatsAppMutation,
+    onSuccess: (result) => {
+      toast.success(`Quotation sent via WhatsApp (${result.provider})`);
+      if (result.conversationId) {
+        router.push(`/dashboard/communications/${result.conversationId}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to send quotation via WhatsApp');
+    }
   });
 
   const markSentMutation = useMutation({
@@ -97,6 +111,13 @@ export function CellAction({ data }: CellActionProps) {
           >
             <Icons.send className='mr-2 h-4 w-4' />
             Send Email
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => sendWhatsAppMutation.mutate(data.id)}
+            disabled={sendWhatsAppMutation.isPending}
+          >
+            <Icons.chat className='mr-2 h-4 w-4' />
+            Send WhatsApp
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => approveMutation.mutate(data.id)}

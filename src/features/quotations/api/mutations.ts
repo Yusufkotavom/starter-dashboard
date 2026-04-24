@@ -6,6 +6,7 @@ import {
   deleteQuotation,
   markQuotationAsSent,
   sendQuotation,
+  sendQuotationViaWhatsApp,
   updateQuotation
 } from './service';
 import { quotationKeys } from './queries';
@@ -39,5 +40,10 @@ export const markQuotationAsSentMutation = mutationOptions({
 
 export const approveQuotationMutation = mutationOptions({
   mutationFn: (id: number) => approveQuotation(id),
+  onSuccess: () => getQueryClient().invalidateQueries({ queryKey: quotationKeys.all })
+});
+
+export const sendQuotationViaWhatsAppMutation = mutationOptions({
+  mutationFn: (id: number) => sendQuotationViaWhatsApp(id),
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: quotationKeys.all })
 });

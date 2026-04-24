@@ -11,6 +11,10 @@ export interface AppSettings {
   paymentAccountName: string | null;
   paymentAccountNumber: string | null;
   paymentQrisUrl: string | null;
+  whatsappProvider: 'EMULATOR' | 'BRIDGE';
+  whatsappBridgeUrl: string | null;
+  whatsappSessionName: string | null;
+  whatsappCountryCode: string;
 }
 
 export type AppSettingsMutationPayload = AppSettings;

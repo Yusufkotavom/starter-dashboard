@@ -55,6 +55,20 @@ export async function sendInvoice(id: number): Promise<{
   });
 }
 
+export async function sendInvoiceViaWhatsApp(id: number): Promise<{
+  success: boolean;
+  provider: string;
+  messageId: string;
+  status: string;
+  documentUrl?: string;
+  paymentLink?: string;
+  conversationId?: number;
+}> {
+  return apiClient(`/invoices/${id}/send-whatsapp`, {
+    method: 'POST'
+  });
+}
+
 export async function markInvoiceAsSent(id: number): Promise<{
   success: boolean;
   invoiceId: number;

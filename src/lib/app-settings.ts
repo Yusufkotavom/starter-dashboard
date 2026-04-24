@@ -1,5 +1,5 @@
 import { revalidateTag, unstable_cache } from 'next/cache';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/lib/prisma-client';
 import { prisma } from '@/lib/prisma';
 
 const APP_SETTINGS_CACHE_TAG = 'app-settings';
@@ -17,6 +17,10 @@ export interface AppSettingsSnapshot {
   paymentAccountName: string | null;
   paymentAccountNumber: string | null;
   paymentQrisUrl: string | null;
+  whatsappProvider: 'EMULATOR' | 'BRIDGE';
+  whatsappBridgeUrl: string | null;
+  whatsappSessionName: string | null;
+  whatsappCountryCode: string;
 }
 
 export interface AppSettingsInput {
@@ -32,6 +36,10 @@ export interface AppSettingsInput {
   paymentAccountName?: string | null;
   paymentAccountNumber?: string | null;
   paymentQrisUrl?: string | null;
+  whatsappProvider: 'EMULATOR' | 'BRIDGE';
+  whatsappBridgeUrl?: string | null;
+  whatsappSessionName?: string | null;
+  whatsappCountryCode: string;
 }
 
 function normalizeOptional(value?: string | null): string | null {
@@ -52,7 +60,11 @@ export function getDefaultAppSettings(): AppSettingsSnapshot {
     paymentBankName: null,
     paymentAccountName: null,
     paymentAccountNumber: null,
-    paymentQrisUrl: null
+    paymentQrisUrl: null,
+    whatsappProvider: 'EMULATOR',
+    whatsappBridgeUrl: null,
+    whatsappSessionName: null,
+    whatsappCountryCode: '62'
   };
 }
 
@@ -69,6 +81,10 @@ export function mapAppSettingsRecord(record: {
   paymentAccountName: string | null;
   paymentAccountNumber: string | null;
   paymentQrisUrl: string | null;
+  whatsappProvider: 'EMULATOR' | 'BRIDGE';
+  whatsappBridgeUrl: string | null;
+  whatsappSessionName: string | null;
+  whatsappCountryCode: string;
 }): AppSettingsSnapshot {
   return {
     companyName: record.companyName,
@@ -82,7 +98,11 @@ export function mapAppSettingsRecord(record: {
     paymentBankName: record.paymentBankName,
     paymentAccountName: record.paymentAccountName,
     paymentAccountNumber: record.paymentAccountNumber,
-    paymentQrisUrl: record.paymentQrisUrl
+    paymentQrisUrl: record.paymentQrisUrl,
+    whatsappProvider: record.whatsappProvider,
+    whatsappBridgeUrl: record.whatsappBridgeUrl,
+    whatsappSessionName: record.whatsappSessionName,
+    whatsappCountryCode: record.whatsappCountryCode
   };
 }
 
@@ -124,7 +144,11 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
       paymentBankName: normalizeOptional(input.paymentBankName),
       paymentAccountName: normalizeOptional(input.paymentAccountName),
       paymentAccountNumber: normalizeOptional(input.paymentAccountNumber),
-      paymentQrisUrl: normalizeOptional(input.paymentQrisUrl)
+      paymentQrisUrl: normalizeOptional(input.paymentQrisUrl),
+      whatsappProvider: input.whatsappProvider,
+      whatsappBridgeUrl: normalizeOptional(input.whatsappBridgeUrl),
+      whatsappSessionName: normalizeOptional(input.whatsappSessionName),
+      whatsappCountryCode: input.whatsappCountryCode.trim() || '62'
     },
     update: {
       companyName: input.companyName.trim(),
@@ -138,7 +162,11 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
       paymentBankName: normalizeOptional(input.paymentBankName),
       paymentAccountName: normalizeOptional(input.paymentAccountName),
       paymentAccountNumber: normalizeOptional(input.paymentAccountNumber),
-      paymentQrisUrl: normalizeOptional(input.paymentQrisUrl)
+      paymentQrisUrl: normalizeOptional(input.paymentQrisUrl),
+      whatsappProvider: input.whatsappProvider,
+      whatsappBridgeUrl: normalizeOptional(input.whatsappBridgeUrl),
+      whatsappSessionName: normalizeOptional(input.whatsappSessionName),
+      whatsappCountryCode: input.whatsappCountryCode.trim() || '62'
     }
   });
 

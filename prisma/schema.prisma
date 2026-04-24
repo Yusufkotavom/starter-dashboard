@@ -22,6 +22,10 @@ model AppSettings {
   paymentAccountName   String?
   paymentAccountNumber String?
   paymentQrisUrl       String?
+  whatsappProvider     WhatsAppProvider @default(EMULATOR)
+  whatsappBridgeUrl    String?
+  whatsappSessionName  String?
+  whatsappCountryCode  String   @default("62")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
@@ -102,11 +106,14 @@ model Client {
   projects   Project[]
   invoices   Invoice[]
   subscriptions ClientSubscription[]
+  conversations Conversation[]
+  messages   MessageLog[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
   @@index([status, updatedAt])
   @@index([organizationId, status, updatedAt])
+  @@index([phone])
 }
 
 enum ClientStatus {
@@ -274,6 +281,53 @@ model Expense {
   @@index([organizationId, date])
 }
 
+model Conversation {
+  id                Int                 @id @default(autoincrement())
+  organizationId    String?
+  channel           CommunicationChannel @default(WHATSAPP)
+  phone             String
+  displayName       String?
+  clientId          Int?
+  client            Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  externalThreadId  String?
+  status            ConversationStatus  @default(OPEN)
+  lastMessagePreview String?
+  lastMessageAt     DateTime?
+  unreadCount       Int                 @default(0)
+  messages          MessageLog[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([channel, phone])
+  @@index([clientId])
+  @@index([organizationId, status, lastMessageAt])
+}
+
+model MessageLog {
+  id               Int                  @id @default(autoincrement())
+  organizationId   String?
+  conversationId   Int
+  conversation     Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  clientId         Int?
+  client           Client?              @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  channel          CommunicationChannel @default(WHATSAPP)
+  direction        MessageDirection
+  status           MessageStatus        @default(PENDING)
+  provider         WhatsAppProvider?
+  externalMessageId String?
+  body             String
+  attachmentUrl    String?
+  attachmentName   String?
+  documentUrl      String?
+  metadata         Json?
+  sentAt           DateTime?
+  createdAt        DateTime             @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([clientId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
 model SubscriptionPlan {
   id            Int                  @id @default(autoincrement())
   organizationId String?
@@ -336,4 +390,32 @@ enum SubscriptionStatus {
   PAUSED
   CANCELLED
   EXPIRED
+}
+
+enum CommunicationChannel {
+  WHATSAPP
+}
+
+enum ConversationStatus {
+  OPEN
+  ARCHIVED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  RECEIVED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum WhatsAppProvider {
+  EMULATOR
+  BRIDGE
 }

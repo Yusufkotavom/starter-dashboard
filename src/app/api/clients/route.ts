@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ClientStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { buildClientOrderBy, mapClientRecord } from '@/lib/agency';
+import { normalizePhoneNumber } from '@/lib/phone';
 import type { ClientMutationPayload } from '@/features/clients/api/types';
 import {
   buildOrganizationReadScope,
@@ -17,7 +18,7 @@ function normalizeClientPayload(
     ...buildOrganizationScope(organizationId),
     name: body.name.trim(),
     email: body.email.trim().toLowerCase(),
-    phone: body.phone?.trim() || null,
+    phone: normalizePhoneNumber(body.phone),
     company: body.company?.trim() || null,
     address: body.address?.trim() || null,
     status: body.status,
