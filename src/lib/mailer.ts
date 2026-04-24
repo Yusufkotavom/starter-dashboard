@@ -2,12 +2,20 @@ import { formatPrice } from '@/lib/utils';
 
 type MailProvider = 'emulator' | 'resend';
 
+export interface MailAttachment {
+  content?: string;
+  contentType?: string;
+  filename: string;
+  path?: string;
+}
+
 export interface MailMessage {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
   replyTo?: string;
+  attachments?: MailAttachment[];
 }
 
 export interface MailSendResult {
@@ -42,7 +50,8 @@ async function sendWithResend(message: MailMessage): Promise<MailSendResult> {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'User-Agent': 'starter-dashboard/1.0'
     },
     body: JSON.stringify({
       from: getFromEmail(),
@@ -50,7 +59,8 @@ async function sendWithResend(message: MailMessage): Promise<MailSendResult> {
       reply_to: message.replyTo || getReplyTo(),
       subject: message.subject,
       html: message.html,
-      text: message.text
+      text: message.text,
+      attachments: message.attachments
     })
   });
 
@@ -76,7 +86,8 @@ async function sendWithEmulator(message: MailMessage): Promise<MailSendResult> {
     replyTo: message.replyTo || getReplyTo(),
     subject: message.subject,
     html: message.html,
-    text: message.text
+    text: message.text,
+    attachments: message.attachments
   };
 
   process.stdout.write(`[mail:emulator] ${JSON.stringify(payload, null, 2)}\n`);
@@ -104,6 +115,8 @@ interface QuotationMailInput {
   validUntil: string | null;
   notes: string | null;
   services: string[];
+  documentUrl?: string | null;
+  attachmentLabel?: string | null;
 }
 
 interface InvoiceMailInput {
@@ -116,6 +129,8 @@ interface InvoiceMailInput {
   dueDate: string | null;
   notes: string | null;
   projectName: string | null;
+  documentUrl?: string | null;
+  attachmentLabel?: string | null;
 }
 
 export function renderQuotationEmail(input: QuotationMailInput): MailMessage {
@@ -141,9 +156,19 @@ export function renderQuotationEmail(input: QuotationMailInput): MailMessage {
         <p><strong>Services:</strong></p>
         ${serviceList}
         ${input.notes ? `<p><strong>Notes:</strong><br/>${input.notes}</p>` : ''}
+        ${
+          input.documentUrl
+            ? `<p><a href="${input.documentUrl}" style="display:inline-block;background:#111827;color:#fff;text-decoration:none;padding:12px 16px;border-radius:999px;">Open quotation document</a></p>`
+            : ''
+        }
+        ${
+          input.attachmentLabel
+            ? `<p style="color:#6b7280;">Attachment included: ${input.attachmentLabel}</p>`
+            : ''
+        }
       </div>
     `,
-    text: `Quotation ${input.number}\nTotal: ${formatPrice(input.total)}\nValid Until: ${validUntil}`
+    text: `Quotation ${input.number}\nTotal: ${formatPrice(input.total)}\nValid Until: ${validUntil}${input.documentUrl ? `\nDocument: ${input.documentUrl}` : ''}${input.attachmentLabel ? `\nAttachment: ${input.attachmentLabel}` : ''}`
   };
 }
 
@@ -165,8 +190,18 @@ export function renderInvoiceEmail(input: InvoiceMailInput): MailMessage {
         <p><strong>Balance Due:</strong> ${formatPrice(input.balanceDue)}</p>
         <p><strong>Due Date:</strong> ${dueDate}</p>
         ${input.notes ? `<p><strong>Notes:</strong><br/>${input.notes}</p>` : ''}
+        ${
+          input.documentUrl
+            ? `<p><a href="${input.documentUrl}" style="display:inline-block;background:#111827;color:#fff;text-decoration:none;padding:12px 16px;border-radius:999px;">Open invoice document</a></p>`
+            : ''
+        }
+        ${
+          input.attachmentLabel
+            ? `<p style="color:#6b7280;">Attachment included: ${input.attachmentLabel}</p>`
+            : ''
+        }
       </div>
     `,
-    text: `Invoice ${input.number}\nTotal: ${formatPrice(input.total)}\nBalance Due: ${formatPrice(input.balanceDue)}\nDue Date: ${dueDate}`
+    text: `Invoice ${input.number}\nTotal: ${formatPrice(input.total)}\nBalance Due: ${formatPrice(input.balanceDue)}\nDue Date: ${dueDate}${input.documentUrl ? `\nDocument: ${input.documentUrl}` : ''}${input.attachmentLabel ? `\nAttachment: ${input.attachmentLabel}` : ''}`
   };
 }

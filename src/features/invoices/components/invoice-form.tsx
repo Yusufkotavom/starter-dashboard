@@ -5,6 +5,7 @@ import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useStore } from '@tanstack/react-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
@@ -28,6 +29,8 @@ export default function InvoiceForm({
 }) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const documentUrl = initialData ? `/documents/invoices/${initialData.id}` : null;
+  const pdfUrl = initialData ? `/api/invoices/${initialData.id}/pdf` : null;
   const { data: clientData } = useSuspenseQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
   const { data: projectData } = useSuspenseQuery(projectsQueryOptions({ page: 1, limit: 1000 }));
 
@@ -112,7 +115,39 @@ export default function InvoiceForm({
   return (
     <Card className='mx-auto w-full'>
       <CardHeader>
-        <CardTitle className='text-2xl font-bold'>{pageTitle}</CardTitle>
+        <div className='flex flex-wrap items-start justify-between gap-4'>
+          <CardTitle className='text-2xl font-bold'>{pageTitle}</CardTitle>
+          {documentUrl ? (
+            <div className='flex flex-wrap gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <Icons.externalLink className='mr-2 h-4 w-4' />
+                Open Document
+              </Button>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() =>
+                  window.open(`${documentUrl}?print=1`, '_blank', 'noopener,noreferrer')
+                }
+              >
+                <Icons.page className='mr-2 h-4 w-4' />
+                Print
+              </Button>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => pdfUrl && window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <Icons.fileTypePdf className='mr-2 h-4 w-4' />
+                Download PDF
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent>
         <form.AppForm>

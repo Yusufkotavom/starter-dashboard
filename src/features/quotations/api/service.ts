@@ -55,6 +55,7 @@ export async function sendQuotation(id: number): Promise<{
   provider: string;
   messageId: string;
   status: string;
+  documentUrl?: string;
 }> {
   return apiClient(`/quotations/${id}/send`, {
     method: 'POST'

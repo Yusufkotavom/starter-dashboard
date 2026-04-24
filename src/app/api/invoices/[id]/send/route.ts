@@ -1,46 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InvoiceStatus } from '@prisma/client';
+import {
+  buildDocumentUrl,
+  createAttachmentContent,
+  createDocumentToken,
+  getDocumentOrigin
+} from '@/lib/documents/shared';
+import { getInvoiceDocumentData } from '@/lib/documents/invoices';
+import { generateInvoicePdf } from '@/lib/documents/pdf';
 import { prisma } from '@/lib/prisma';
 import { renderInvoiceEmail, sendMail } from '@/lib/mailer';
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(_request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   const { id } = await params;
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: Number(id) },
-    include: {
-      client: true,
-      project: true,
-      payments: { select: { amount: true } }
-    }
-  });
+  const invoiceId = Number(id);
+  const invoice = await getInvoiceDocumentData(prisma, invoiceId);
 
   if (!invoice) {
     return NextResponse.json({ message: `Invoice with ID ${id} not found` }, { status: 404 });
   }
 
-  const paidAmount = invoice.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-  const balanceDue = Math.max(Number(invoice.total) - paidAmount, 0);
+  const origin = getDocumentOrigin(request);
+  const documentToken = createDocumentToken('invoice', invoice.id);
+  const documentUrl = buildDocumentUrl(origin, 'invoice', invoice.id, documentToken);
+  const documentPdf = await generateInvoicePdf(invoice);
+  const attachmentLabel = `invoice-${invoice.number}.pdf`;
 
   const mail = renderInvoiceEmail({
     number: invoice.number,
-    clientName: invoice.client.name,
-    company: invoice.client.company,
-    total: Number(invoice.total),
-    paidAmount,
-    balanceDue,
-    dueDate: invoice.dueDate?.toISOString() ?? null,
+    clientName: invoice.clientName,
+    company: invoice.clientCompany,
+    total: invoice.total,
+    paidAmount: invoice.paidAmount,
+    balanceDue: invoice.balanceDue,
+    dueDate: invoice.dueDate,
     notes: invoice.notes,
-    projectName: invoice.project?.name ?? null
+    projectName: invoice.projectName,
+    documentUrl,
+    attachmentLabel
   });
 
   const result = await sendMail({
     ...mail,
-    to: invoice.client.email
+    to: invoice.clientEmail,
+    attachments: [
+      {
+        content: createAttachmentContent(documentPdf),
+        contentType: 'application/pdf',
+        filename: attachmentLabel
+      }
+    ]
   });
 
-  const nextStatus = invoice.status === InvoiceStatus.DRAFT ? InvoiceStatus.SENT : invoice.status;
+  const nextStatus: InvoiceStatus =
+    invoice.status === InvoiceStatus.DRAFT ? InvoiceStatus.SENT : (invoice.status as InvoiceStatus);
   if (nextStatus !== invoice.status) {
     await prisma.invoice.update({
       where: { id: invoice.id },
@@ -52,6 +67,7 @@ export async function POST(_request: NextRequest, { params }: Params) {
     success: true,
     provider: result.provider,
     messageId: result.id,
-    status: nextStatus
+    status: nextStatus,
+    documentUrl
   });
 }

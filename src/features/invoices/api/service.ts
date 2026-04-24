@@ -47,6 +47,7 @@ export async function sendInvoice(id: number): Promise<{
   provider: string;
   messageId: string;
   status: string;
+  documentUrl?: string;
 }> {
   return apiClient(`/invoices/${id}/send`, {
     method: 'POST'

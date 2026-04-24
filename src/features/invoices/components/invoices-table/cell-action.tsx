@@ -24,6 +24,8 @@ interface CellActionProps {
 export function CellAction({ data }: CellActionProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const documentUrl = `/documents/invoices/${data.id}`;
+  const pdfUrl = `/api/invoices/${data.id}/pdf`;
 
   const deleteMutation = useMutation({
     ...deleteInvoiceMutation,
@@ -65,6 +67,22 @@ export function CellAction({ data }: CellActionProps) {
           >
             <Icons.send className='mr-2 h-4 w-4' />
             Send Email
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open(documentUrl, '_blank', 'noopener,noreferrer')}
+          >
+            <Icons.externalLink className='mr-2 h-4 w-4' />
+            Open Document
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open(`${documentUrl}?print=1`, '_blank', 'noopener,noreferrer')}
+          >
+            <Icons.page className='mr-2 h-4 w-4' />
+            Print
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}>
+            <Icons.fileTypePdf className='mr-2 h-4 w-4' />
+            Download PDF
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`/dashboard/invoices/${data.id}`)}>
             <Icons.edit className='mr-2 h-4 w-4' />
