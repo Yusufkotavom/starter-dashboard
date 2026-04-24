@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { type Column, type ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
+import { buildProjectBoardHref } from '@/lib/project-progress';
 import { cn, formatPrice } from '@/lib/utils';
 import type { Project } from '../../api/types';
 import {
@@ -22,10 +24,31 @@ export const columns: ColumnDef<Project>[] = [
     ),
     cell: ({ row }) => (
       <div className='min-w-[220px]'>
-        <div className='font-medium'>{row.original.name}</div>
+        <Link
+          href={`/dashboard/projects/${row.original.id}`}
+          className='font-medium hover:underline'
+        >
+          {row.original.name}
+        </Link>
         <div className='text-muted-foreground text-xs'>
           {row.original.clientCompany ?? row.original.clientName}
         </div>
+        <Link
+          href={buildProjectBoardHref({
+            id: row.original.id,
+            name: row.original.name,
+            clientName: row.original.clientCompany ?? row.original.clientName,
+            status: row.original.status,
+            startDate: row.original.startDate,
+            endDate: row.original.endDate,
+            quotationId: row.original.quotationId,
+            budget: row.original.budget
+          })}
+          className='text-primary mt-1 inline-flex items-center gap-1 text-xs font-medium hover:underline'
+        >
+          Open board
+          <Icons.arrowRight className='h-3.5 w-3.5' />
+        </Link>
       </div>
     ),
     meta: {

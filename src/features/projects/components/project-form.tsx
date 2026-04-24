@@ -1,15 +1,20 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { useStore } from '@tanstack/react-form';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
 import { quotationsQueryOptions } from '@/features/quotations/api/queries';
+import { buildProjectBoardHref, getProjectProgressSummary } from '@/lib/project-progress';
+import { formatPrice } from '@/lib/utils';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
 import type { Project } from '../api/types';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
@@ -104,6 +109,19 @@ export default function ProjectForm({
   const budget = useStore(form.store, (state) => state.values.budget);
   const selectedQuotation =
     quotationData?.items.find((quotation) => quotation.id === quotationId) ?? null;
+  const projectSummary = initialData ? getProjectProgressSummary(initialData) : null;
+  const boardHref = initialData
+    ? buildProjectBoardHref({
+        id: initialData.id,
+        name: initialData.name,
+        clientName: initialData.clientCompany ?? initialData.clientName,
+        status: initialData.status,
+        startDate: initialData.startDate,
+        endDate: initialData.endDate,
+        quotationId: initialData.quotationId,
+        budget: initialData.budget
+      })
+    : '/dashboard/kanban';
 
   useEffect(() => {
     if (!selectedQuotation) return;
@@ -129,6 +147,65 @@ export default function ProjectForm({
         <CardTitle className='text-2xl font-bold'>{pageTitle}</CardTitle>
       </CardHeader>
       <CardContent>
+        {initialData && projectSummary ? (
+          <div className='mb-6 grid gap-4 lg:grid-cols-3'>
+            <div className='rounded-xl border bg-muted/20 p-4'>
+              <div className='text-muted-foreground text-sm'>Delivery Progress</div>
+              <div className='mt-2 flex items-end justify-between gap-3'>
+                <div>
+                  <div className='text-2xl font-semibold'>{projectSummary.progress}%</div>
+                  <div className='text-muted-foreground text-sm'>{projectSummary.phase}</div>
+                </div>
+                <div className='text-muted-foreground text-right text-xs'>
+                  <div>Status {initialData.status.toLowerCase()}</div>
+                  <div>{projectSummary.nextStep}</div>
+                </div>
+              </div>
+              <Progress value={projectSummary.progress} className='mt-4' />
+            </div>
+
+            <div className='rounded-xl border bg-muted/20 p-4'>
+              <div className='text-muted-foreground text-sm'>Project Snapshot</div>
+              <div className='mt-3 space-y-2 text-sm'>
+                <div className='flex items-center justify-between gap-4'>
+                  <span className='text-muted-foreground'>Client</span>
+                  <span className='font-medium'>
+                    {initialData.clientCompany ?? initialData.clientName}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between gap-4'>
+                  <span className='text-muted-foreground'>Budget</span>
+                  <span className='font-medium'>
+                    {initialData.budget ? formatPrice(Number(initialData.budget)) : 'Not set'}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between gap-4'>
+                  <span className='text-muted-foreground'>Quotation</span>
+                  <span className='font-medium'>{initialData.quotationNumber ?? 'Not linked'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-xl border bg-muted/20 p-4'>
+              <div className='text-muted-foreground text-sm'>Workspace Actions</div>
+              <div className='mt-3 flex flex-col gap-2'>
+                <Button asChild>
+                  <Link href={boardHref}>
+                    <Icons.kanban className='mr-2 h-4 w-4' />
+                    Open Board
+                  </Link>
+                </Button>
+                <Button asChild variant='outline'>
+                  <Link href='/dashboard/projects'>
+                    <Icons.chevronLeft className='mr-2 h-4 w-4' />
+                    Back to Projects
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <form.AppForm>
           <form.Form className='space-y-6'>
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>

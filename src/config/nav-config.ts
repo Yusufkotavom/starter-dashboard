@@ -113,8 +113,7 @@ export const navGroups: NavGroup[] = [
         icon: 'kanban',
         shortcut: ['k', 'k'],
         isActive: false,
-        items: [],
-        visible: () => false
+        items: []
       },
       {
         title: 'Team',
@@ -151,7 +150,8 @@ export const navGroups: NavGroup[] = [
         icon: 'creditCard',
         shortcut: ['s', 'u'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false
       },
       {
         title: 'Expenses',

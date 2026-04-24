@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { PaymentProofForm } from '@/app/portal/_components/payment-proof-form';
 import { QuotationApprovalButton } from '@/app/portal/_components/quotation-approval-button';
 import { StatusBadge } from '@/app/portal/_components/status-badge';
 import { getPortalClientContext } from '@/lib/customer-portal';
+import { getProjectProgressSummary } from '@/lib/project-progress';
 import { formatPrice } from '@/lib/utils';
 
 function getStatusTone(value: string): 'default' | 'success' | 'warning' | 'danger' {
@@ -89,6 +91,27 @@ export default async function PortalPage() {
         </Card>
       </div>
 
+      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
+        <Link
+          href='/portal/subscriptions'
+          className='rounded-xl border p-4 transition-colors hover:bg-muted/40'
+        >
+          <div className='font-medium'>Subscriptions Workspace</div>
+          <div className='text-muted-foreground mt-1 text-sm'>
+            Full recurring services page with billing history and next billing.
+          </div>
+        </Link>
+        <Link
+          href='/portal/digital-access'
+          className='rounded-xl border p-4 transition-colors hover:bg-muted/40'
+        >
+          <div className='font-medium'>Digital Access</div>
+          <div className='text-muted-foreground mt-1 text-sm'>
+            Open delivered portals, assets, and digital product access from one page.
+          </div>
+        </Link>
+      </div>
+
       <div className='grid gap-6 xl:grid-cols-2'>
         <Card>
           <CardHeader>
@@ -101,7 +124,7 @@ export default async function PortalPage() {
             {quotations.length === 0 ? (
               <div className='text-muted-foreground text-sm'>No quotations available yet.</div>
             ) : (
-              quotations.slice(0, 6).map((quotation) => (
+              quotations.slice(0, 3).map((quotation) => (
                 <div key={quotation.id} className='space-y-4 rounded-xl border p-4'>
                   <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
                     <div className='space-y-1'>
@@ -150,17 +173,53 @@ export default async function PortalPage() {
               <div className='text-muted-foreground text-sm'>No active projects right now.</div>
             ) : (
               activeProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className='flex items-center justify-between rounded-xl border p-4'
-                >
-                  <div>
-                    <div className='font-medium'>{project.name}</div>
-                    <div className='text-muted-foreground mt-1 text-sm'>
-                      Budget {project.budget ? formatPrice(Number(project.budget)) : 'not set'}
-                    </div>
-                  </div>
-                  <StatusBadge tone={getStatusTone(project.status)} value={project.status} />
+                <div key={project.id} className='space-y-4 rounded-xl border p-4'>
+                  {(() => {
+                    const summary = getProjectProgressSummary({
+                      id: project.id,
+                      name: project.name,
+                      clientName: client.company ?? client.name,
+                      status: project.status,
+                      startDate: project.startDate?.toISOString() ?? null,
+                      endDate: project.endDate?.toISOString() ?? null,
+                      quotationId: project.quotationId,
+                      budget: project.budget ? Number(project.budget) : null
+                    });
+
+                    return (
+                      <>
+                        <div className='flex items-start justify-between gap-4'>
+                          <div>
+                            <div className='font-medium'>{project.name}</div>
+                            <div className='text-muted-foreground mt-1 text-sm'>
+                              {summary.phase} · Budget{' '}
+                              {project.budget ? formatPrice(Number(project.budget)) : 'not set'}
+                            </div>
+                          </div>
+                          <StatusBadge
+                            tone={getStatusTone(project.status)}
+                            value={project.status}
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <div className='flex items-center justify-between text-sm'>
+                            <span className='text-muted-foreground'>Delivery progress</span>
+                            <span className='font-medium'>{summary.progress}%</span>
+                          </div>
+                          <Progress value={summary.progress} />
+                          <div className='text-muted-foreground text-xs'>{summary.nextStep}</div>
+                        </div>
+                        <div className='flex flex-wrap gap-2'>
+                          <Link
+                            className='inline-flex rounded-lg border px-3 py-2 text-sm font-medium'
+                            href={`/portal/projects/${project.id}`}
+                          >
+                            Track progress
+                          </Link>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))
             )}
@@ -180,7 +239,7 @@ export default async function PortalPage() {
             {client.invoices.length === 0 ? (
               <div className='text-muted-foreground text-sm'>No invoices issued yet.</div>
             ) : (
-              client.invoices.slice(0, 8).map((invoice) => {
+              client.invoices.slice(0, 4).map((invoice) => {
                 const paidAmount = invoice.payments.reduce(
                   (sum, payment) => sum + Number(payment.amount),
                   0
@@ -266,14 +325,16 @@ export default async function PortalPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Subscriptions</CardTitle>
-          <CardDescription>Retainers and recurring services billed on a schedule.</CardDescription>
+          <CardTitle>Subscriptions Snapshot</CardTitle>
+          <CardDescription>
+            Quick snapshot only. Open the full subscriptions workspace for the complete history.
+          </CardDescription>
         </CardHeader>
         <CardContent className='grid gap-4 lg:grid-cols-2'>
           {activeSubscriptions.length === 0 ? (
             <div className='text-muted-foreground text-sm'>No recurring subscriptions yet.</div>
           ) : (
-            activeSubscriptions.map((subscription) => (
+            activeSubscriptions.slice(0, 2).map((subscription) => (
               <div key={subscription.id} className='rounded-xl border p-4'>
                 <div className='flex items-center justify-between gap-4'>
                   <div>
@@ -283,10 +344,6 @@ export default async function PortalPage() {
                       {subscription.nextBillingDate
                         ? subscription.nextBillingDate.toISOString().slice(0, 10)
                         : 'not scheduled'}
-                    </div>
-                    <div className='text-muted-foreground mt-1 text-sm'>
-                      {formatPrice(Number(subscription.priceOverride ?? subscription.plan.price))} /{' '}
-                      {subscription.plan.interval.toLowerCase()}
                     </div>
                   </div>
                   <StatusBadge

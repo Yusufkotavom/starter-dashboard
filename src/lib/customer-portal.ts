@@ -20,9 +20,29 @@ const portalClientInclude = {
   },
   invoices: {
     include: {
-      project: true,
+      project: {
+        include: {
+          quotation: {
+            include: {
+              items: {
+                include: {
+                  product: true
+                }
+              }
+            }
+          }
+        }
+      },
       payments: { select: { amount: true } },
-      subscription: { include: { plan: true } }
+      subscription: {
+        include: {
+          plan: {
+            include: {
+              service: true
+            }
+          }
+        }
+      }
     },
     orderBy: { createdAt: 'desc' }
   },
@@ -110,12 +130,37 @@ const portalInvoiceInclude = {
   }
 } satisfies Prisma.InvoiceInclude;
 
+const portalProjectInclude = {
+  client: true,
+  quotation: true,
+  invoices: {
+    include: {
+      payments: true
+    },
+    orderBy: { createdAt: 'desc' }
+  },
+  subscriptions: {
+    include: {
+      plan: {
+        include: {
+          service: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  }
+} satisfies Prisma.ProjectInclude;
+
 export type PortalQuotationDocument = Prisma.QuotationGetPayload<{
   include: typeof portalQuotationInclude;
 }>;
 
 export type PortalInvoiceDocument = Prisma.InvoiceGetPayload<{
   include: typeof portalInvoiceInclude;
+}>;
+
+export type PortalProjectDocument = Prisma.ProjectGetPayload<{
+  include: typeof portalProjectInclude;
 }>;
 
 export async function getPortalClientContext(): Promise<PortalClientContext | null> {
@@ -252,6 +297,20 @@ export async function getPortalInvoiceDocument(
       clientId: client.id
     },
     include: portalInvoiceInclude
+  });
+}
+
+export async function getPortalProjectDocument(
+  projectId: number
+): Promise<PortalProjectDocument | null> {
+  const { client } = await getPortalClientOrThrow();
+
+  return prisma.project.findFirst({
+    where: {
+      id: projectId,
+      clientId: client.id
+    },
+    include: portalProjectInclude
   });
 }
 

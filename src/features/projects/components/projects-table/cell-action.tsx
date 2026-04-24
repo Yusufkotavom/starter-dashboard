@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { deleteProjectMutation } from '../../api/mutations';
 import type { Project } from '../../api/types';
+import { buildProjectBoardHref } from '@/lib/project-progress';
 
 interface CellActionProps {
   data: Project;
@@ -53,6 +54,29 @@ export function CellAction({ data }: CellActionProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${data.id}`)}>
+            <Icons.externalLink className='mr-2 h-4 w-4' />
+            Open project
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              router.push(
+                buildProjectBoardHref({
+                  id: data.id,
+                  name: data.name,
+                  clientName: data.clientCompany ?? data.clientName,
+                  status: data.status,
+                  startDate: data.startDate,
+                  endDate: data.endDate,
+                  quotationId: data.quotationId,
+                  budget: data.budget
+                })
+              )
+            }
+          >
+            <Icons.kanban className='mr-2 h-4 w-4' />
+            Open board
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${data.id}`)}>
             <Icons.edit className='mr-2 h-4 w-4' />
             Update

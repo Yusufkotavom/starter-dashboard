@@ -13,8 +13,24 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             </span>
             <span>Client Portal</span>
           </Link>
-          <div className='text-muted-foreground text-sm'>
-            Invoices, projects, payments, subscriptions
+          <div className='flex items-center gap-2 text-sm'>
+            <Link href='/portal' className='text-muted-foreground hover:text-foreground'>
+              Overview
+            </Link>
+            <span className='text-muted-foreground'>/</span>
+            <Link
+              href='/portal/subscriptions'
+              className='text-muted-foreground hover:text-foreground'
+            >
+              Subscriptions
+            </Link>
+            <span className='text-muted-foreground'>/</span>
+            <Link
+              href='/portal/digital-access'
+              className='text-muted-foreground hover:text-foreground'
+            >
+              Digital Access
+            </Link>
           </div>
         </div>
       </header>
