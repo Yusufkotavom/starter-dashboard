@@ -107,19 +107,23 @@ export async function runRecurringInvoiceBilling(
       try {
         const invoiceNumber = await generateInvoiceNumber(db);
 
+        const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
+          organizationId:
+            (subscription as { organizationId?: string | null }).organizationId ?? null,
+          number: invoiceNumber,
+          clientId: subscription.clientId,
+          projectId: subscription.projectId,
+          subscriptionId: subscription.id,
+          status: InvoiceStatus.SENT,
+          subtotal: total,
+          tax: 0,
+          total,
+          dueDate: currentBillingDate,
+          notes: `${subscription.plan.name} recurring billing`
+        };
+
         await db.invoice.create({
-          data: {
-            number: invoiceNumber,
-            clientId: subscription.clientId,
-            projectId: subscription.projectId,
-            subscriptionId: subscription.id,
-            status: InvoiceStatus.SENT,
-            subtotal: total,
-            tax: 0,
-            total,
-            dueDate: currentBillingDate,
-            notes: `${subscription.plan.name} recurring billing`
-          }
+          data: invoiceData
         });
 
         break;

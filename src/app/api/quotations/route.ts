@@ -4,8 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { buildQuotationOrderBy, mapQuotationRecord } from '@/lib/agency';
 import { buildQuotationDocument } from '@/lib/agency-workflows';
 import type { QuotationMutationPayload } from '@/features/quotations/api/types';
+import { buildOrganizationReadScope, getActiveOrganizationId } from '@/lib/workspace';
 
 export async function GET(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const { searchParams } = request.nextUrl;
   const page = Number(searchParams.get('page') ?? 1);
   const limit = Number(searchParams.get('limit') ?? 10);
@@ -15,6 +17,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   const where: Prisma.QuotationWhereInput = {
+    ...buildOrganizationReadScope(organizationId),
     ...(status ? { status: { equals: status as QuotationStatus } } : {}),
     ...(search
       ? {
@@ -50,9 +53,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as QuotationMutationPayload;
   const created = await prisma.quotation.create({
-    data: await buildQuotationDocument(prisma, body),
+    data: await buildQuotationDocument(prisma, body, undefined, organizationId),
     include: {
       client: true,
       _count: { select: { items: true } },

@@ -3,9 +3,18 @@ import { prisma } from '@/lib/prisma';
 import { buildCategoryOrderBy, mapCategoryRecord } from '@/lib/catalog';
 import type { CategoryMutationPayload } from '@/features/categories/api/types';
 import { Prisma } from '@prisma/client';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
-function normalizeCategoryPayload(body: CategoryMutationPayload): Prisma.CategoryCreateInput {
+function normalizeCategoryPayload(
+  body: CategoryMutationPayload,
+  organizationId: string | null
+): Prisma.CategoryCreateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     name: body.name.trim(),
     slug: body.slug.trim().toLowerCase(),
     description: body.description.trim() || null
@@ -13,6 +22,7 @@ function normalizeCategoryPayload(body: CategoryMutationPayload): Prisma.Categor
 }
 
 export async function GET(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const { searchParams } = request.nextUrl;
 
   const page = Number(searchParams.get('page') ?? 1);
@@ -21,15 +31,18 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get('sort') ?? undefined;
   const skip = (page - 1) * limit;
 
-  const where: Prisma.CategoryWhereInput = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { slug: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } }
-        ]
-      }
-    : {};
+  const where: Prisma.CategoryWhereInput = {
+    ...buildOrganizationReadScope(organizationId),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { slug: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } }
+          ]
+        }
+      : {})
+  };
 
   const [items, total] = await Promise.all([
     prisma.category.findMany({
@@ -54,10 +67,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as CategoryMutationPayload;
 
   const created = await prisma.category.create({
-    data: normalizeCategoryPayload(body),
+    data: normalizeCategoryPayload(body, organizationId),
     include: { _count: { select: { products: true } } }
   });
 

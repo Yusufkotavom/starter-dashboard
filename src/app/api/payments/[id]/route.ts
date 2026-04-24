@@ -4,11 +4,20 @@ import { prisma } from '@/lib/prisma';
 import { mapPaymentRecord } from '@/lib/agency';
 import { syncInvoicePaymentState } from '@/lib/payment-workflows';
 import type { PaymentMutationPayload } from '@/features/payments/api/types';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
 type Params = { params: Promise<{ id: string }> };
 
-function normalizePaymentPayload(body: PaymentMutationPayload): Prisma.PaymentUncheckedUpdateInput {
+function normalizePaymentPayload(
+  body: PaymentMutationPayload,
+  organizationId: string | null
+): Prisma.PaymentUncheckedUpdateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     invoiceId: body.invoiceId,
     amount: new Prisma.Decimal(body.amount),
     method: body.method,
@@ -19,9 +28,13 @@ function normalizePaymentPayload(body: PaymentMutationPayload): Prisma.PaymentUn
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
-  const payment = await prisma.payment.findUnique({
-    where: { id: Number(id) },
+  const payment = await prisma.payment.findFirst({
+    where: {
+      id: Number(id),
+      ...buildOrganizationReadScope(organizationId)
+    },
     include: { invoice: { include: { client: true, payments: { select: { amount: true } } } } }
   });
 
@@ -33,19 +46,25 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
   const body = (await request.json()) as PaymentMutationPayload;
 
   try {
     const payment = await prisma.$transaction(async (tx) => {
-      const existing = await tx.payment.findUnique({ where: { id: Number(id) } });
+      const existing = await tx.payment.findFirst({
+        where: {
+          id: Number(id),
+          ...buildOrganizationReadScope(organizationId)
+        }
+      });
       if (!existing) {
         throw new Error('NOT_FOUND');
       }
 
       const updated = await tx.payment.update({
-        where: { id: Number(id) },
-        data: normalizePaymentPayload(body)
+        where: { id: existing.id },
+        data: normalizePaymentPayload(body, organizationId)
       });
 
       await syncInvoicePaymentState(tx, existing.invoiceId);
@@ -66,16 +85,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
 
   try {
     await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findUnique({ where: { id: Number(id) } });
+      const payment = await tx.payment.findFirst({
+        where: {
+          id: Number(id),
+          ...buildOrganizationReadScope(organizationId)
+        }
+      });
       if (!payment) {
         throw new Error('NOT_FOUND');
       }
 
-      await tx.payment.delete({ where: { id: Number(id) } });
+      await tx.payment.delete({ where: { id: payment.id } });
       await syncInvoicePaymentState(tx, payment.invoiceId);
     });
     return NextResponse.json({ success: true });

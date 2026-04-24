@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { mapCategoryRecord } from '@/lib/catalog';
 import type { CategoryMutationPayload } from '@/features/categories/api/types';
 import { Prisma } from '@prisma/client';
+import { buildOrganizationReadScope, getActiveOrganizationId } from '@/lib/workspace';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,9 +16,13 @@ function normalizeCategoryPayload(body: CategoryMutationPayload): Prisma.Categor
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
-  const category = await prisma.category.findUnique({
-    where: { id: Number(id) },
+  const category = await prisma.category.findFirst({
+    where: {
+      id: Number(id),
+      ...buildOrganizationReadScope(organizationId)
+    },
     include: { _count: { select: { products: true } } }
   });
 
@@ -37,12 +42,26 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
   const body = (await request.json()) as CategoryMutationPayload;
 
   try {
+    const existing = await prisma.category.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: `Category with ID ${id} not found` },
+        { status: 404 }
+      );
+    }
     const category = await prisma.category.update({
-      where: { id: Number(id) },
+      where: { id: existing.id },
       data: normalizeCategoryPayload(body),
       include: { _count: { select: { products: true } } }
     });
@@ -61,11 +80,25 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
 
   try {
+    const existing = await prisma.category.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: `Category with ID ${id} not found` },
+        { status: 404 }
+      );
+    }
     await prisma.category.delete({
-      where: { id: Number(id) }
+      where: { id: existing.id }
     });
 
     return NextResponse.json({

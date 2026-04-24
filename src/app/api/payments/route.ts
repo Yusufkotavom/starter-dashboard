@@ -4,9 +4,18 @@ import { prisma } from '@/lib/prisma';
 import { buildPaymentOrderBy, mapPaymentRecord } from '@/lib/agency';
 import { syncInvoicePaymentState } from '@/lib/payment-workflows';
 import type { PaymentMutationPayload } from '@/features/payments/api/types';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
-function normalizePaymentPayload(body: PaymentMutationPayload): Prisma.PaymentUncheckedCreateInput {
+function normalizePaymentPayload(
+  body: PaymentMutationPayload,
+  organizationId: string | null
+): Prisma.PaymentUncheckedCreateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     invoiceId: body.invoiceId,
     amount: new Prisma.Decimal(body.amount),
     method: body.method,
@@ -17,6 +26,7 @@ function normalizePaymentPayload(body: PaymentMutationPayload): Prisma.PaymentUn
 }
 
 export async function GET(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const { searchParams } = request.nextUrl;
   const page = Number(searchParams.get('page') ?? 1);
   const limit = Number(searchParams.get('limit') ?? 10);
@@ -24,16 +34,19 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get('sort') ?? undefined;
   const skip = (page - 1) * limit;
 
-  const where: Prisma.PaymentWhereInput = search
-    ? {
-        OR: [
-          { method: { contains: search, mode: 'insensitive' } },
-          { reference: { contains: search, mode: 'insensitive' } },
-          { invoice: { number: { contains: search, mode: 'insensitive' } } },
-          { invoice: { client: { name: { contains: search, mode: 'insensitive' } } } }
-        ]
-      }
-    : {};
+  const where: Prisma.PaymentWhereInput = {
+    ...buildOrganizationReadScope(organizationId),
+    ...(search
+      ? {
+          OR: [
+            { method: { contains: search, mode: 'insensitive' } },
+            { reference: { contains: search, mode: 'insensitive' } },
+            { invoice: { number: { contains: search, mode: 'insensitive' } } },
+            { invoice: { client: { name: { contains: search, mode: 'insensitive' } } } }
+          ]
+        }
+      : {})
+  };
 
   const [items, total] = await Promise.all([
     prisma.payment.findMany({
@@ -53,10 +66,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as PaymentMutationPayload;
   const created = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
-      data: normalizePaymentPayload(body)
+      data: normalizePaymentPayload(body, organizationId)
     });
 
     await syncInvoicePaymentState(tx, body.invoiceId);

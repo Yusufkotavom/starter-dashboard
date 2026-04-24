@@ -4,6 +4,11 @@ import { mapProductRecord } from '@/lib/catalog';
 import type { ProductMutationPayload } from '@/features/products/api/types';
 import { Prisma, ProductType, SubscriptionInterval } from '@prisma/client';
 import { invalidatePortalOrderCatalog } from '@/lib/customer-portal';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,8 +21,12 @@ function slugify(value: string): string {
     .slice(0, 60);
 }
 
-function normalizeProductPayload(body: ProductMutationPayload): Prisma.ProductUncheckedUpdateInput {
+function normalizeProductPayload(
+  body: ProductMutationPayload,
+  organizationId: string | null
+): Prisma.ProductUncheckedUpdateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     name: body.name.trim(),
     description: body.description.trim(),
     type: body.type === 'service' ? ProductType.SERVICE : ProductType.PRODUCT,
@@ -108,9 +117,13 @@ async function syncRecurringPlans(
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
-  const product = await prisma.product.findUnique({
-    where: { id: Number(id) },
+  const product = await prisma.product.findFirst({
+    where: {
+      id: Number(id),
+      ...buildOrganizationReadScope(organizationId)
+    },
     include: {
       category: true,
       subscriptionPlans: {
@@ -142,13 +155,27 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
   const body = (await request.json()) as ProductMutationPayload;
 
   try {
+    const existing = await prisma.product.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: `Product with ID ${id} not found` },
+        { status: 404 }
+      );
+    }
     const product = await prisma.product.update({
-      where: { id: Number(id) },
-      data: normalizeProductPayload(body),
+      where: { id: existing.id },
+      data: normalizeProductPayload(body, organizationId),
       include: {
         category: true,
         subscriptionPlans: {
@@ -198,11 +225,25 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
 
   try {
+    const existing = await prisma.product.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: `Product with ID ${id} not found` },
+        { status: 404 }
+      );
+    }
     await prisma.product.delete({
-      where: { id: Number(id) }
+      where: { id: existing.id }
     });
 
     await invalidatePortalOrderCatalog();

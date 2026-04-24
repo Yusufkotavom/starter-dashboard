@@ -4,6 +4,11 @@ import { buildProductOrderBy, mapProductRecord } from '@/lib/catalog';
 import type { ProductMutationPayload } from '@/features/products/api/types';
 import { Prisma, ProductType, SubscriptionInterval } from '@prisma/client';
 import { invalidatePortalOrderCatalog } from '@/lib/customer-portal';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
 function slugify(value: string): string {
   return value
@@ -14,8 +19,12 @@ function slugify(value: string): string {
     .slice(0, 60);
 }
 
-function normalizeProductPayload(body: ProductMutationPayload): Prisma.ProductUncheckedCreateInput {
+function normalizeProductPayload(
+  body: ProductMutationPayload,
+  organizationId: string | null
+): Prisma.ProductUncheckedCreateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     name: body.name.trim(),
     description: body.description.trim(),
     type: body.type === 'service' ? ProductType.SERVICE : ProductType.PRODUCT,
@@ -106,6 +115,7 @@ async function syncRecurringPlans(
 }
 
 export async function GET(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const { searchParams } = request.nextUrl;
 
   const page = Number(searchParams.get('page') ?? 1);
@@ -116,6 +126,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   const where: Prisma.ProductWhereInput = {
+    ...buildOrganizationReadScope(organizationId),
     ...(categories ? { categorySlug: { in: categories.split(/[.,]/).filter(Boolean) } } : {}),
     ...(search
       ? {
@@ -163,10 +174,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as ProductMutationPayload;
 
   const created = await prisma.product.create({
-    data: normalizeProductPayload(body),
+    data: normalizeProductPayload(body, organizationId),
     include: {
       category: true,
       subscriptionPlans: {

@@ -3,11 +3,20 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { mapExpenseRecord } from '@/lib/agency';
 import type { ExpenseMutationPayload } from '@/features/expenses/api/types';
+import {
+  buildOrganizationReadScope,
+  buildOrganizationScope,
+  getActiveOrganizationId
+} from '@/lib/workspace';
 
 type Params = { params: Promise<{ id: string }> };
 
-function normalizeExpensePayload(body: ExpenseMutationPayload): Prisma.ExpenseUncheckedUpdateInput {
+function normalizeExpensePayload(
+  body: ExpenseMutationPayload,
+  organizationId: string | null
+): Prisma.ExpenseUncheckedUpdateInput {
   return {
+    ...buildOrganizationScope(organizationId),
     projectId: body.projectId ?? null,
     category: body.category.trim(),
     vendor: body.vendor?.trim() || null,
@@ -19,9 +28,13 @@ function normalizeExpensePayload(body: ExpenseMutationPayload): Prisma.ExpenseUn
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
-  const expense = await prisma.expense.findUnique({
-    where: { id: Number(id) },
+  const expense = await prisma.expense.findFirst({
+    where: {
+      id: Number(id),
+      ...buildOrganizationReadScope(organizationId)
+    },
     include: { project: true }
   });
 
@@ -33,13 +46,24 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
   const body = (await request.json()) as ExpenseMutationPayload;
 
   try {
+    const existing = await prisma.expense.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json({ message: `Expense with ID ${id} not found` }, { status: 404 });
+    }
     const expense = await prisma.expense.update({
-      where: { id: Number(id) },
-      data: normalizeExpensePayload(body),
+      where: { id: existing.id },
+      data: normalizeExpensePayload(body, organizationId),
       include: { project: true }
     });
 
@@ -50,10 +74,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const organizationId = await getActiveOrganizationId();
   const { id } = await params;
 
   try {
-    await prisma.expense.delete({ where: { id: Number(id) } });
+    const existing = await prisma.expense.findFirst({
+      where: {
+        id: Number(id),
+        ...buildOrganizationReadScope(organizationId)
+      },
+      select: { id: true }
+    });
+    if (!existing) {
+      return NextResponse.json({ message: `Expense with ID ${id} not found` }, { status: 404 });
+    }
+    await prisma.expense.delete({ where: { id: existing.id } });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ message: `Expense with ID ${id} not found` }, { status: 404 });

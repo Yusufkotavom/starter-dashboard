@@ -135,6 +135,7 @@ export async function approveQuotationAndCreateInvoice(
     }
 
     const invoicePayload = {
+      organizationId: (quotation as { organizationId?: string | null }).organizationId ?? null,
       clientId: quotation.clientId,
       projectId: quotation.project?.id ?? null,
       status: InvoiceStatus.DRAFT,

@@ -65,12 +65,22 @@ export async function generateRunningNumber(
 export async function buildQuotationDocument(
   db: DbClient,
   body: QuotationMutationPayload,
-  currentNumber?: string
+  currentNumber?: string,
+  organizationId?: string | null
 ): Promise<Prisma.QuotationUncheckedCreateInput> {
   const normalizedServiceIds = [...new Set((body.serviceIds ?? []).filter((id) => id > 0))];
   const services =
     normalizedServiceIds.length > 0
-      ? await db.product.findMany({ where: { id: { in: normalizedServiceIds } } })
+      ? await db.product.findMany({
+          where: {
+            id: { in: normalizedServiceIds },
+            ...(organizationId
+              ? {
+                  OR: [{ organizationId }, { organizationId: null }]
+                }
+              : {})
+          }
+        })
       : [];
   const serviceMap = new Map(services.map((service) => [service.id, service]));
   const orderedServices = normalizedServiceIds
@@ -116,6 +126,7 @@ export async function buildQuotationDocument(
     (await generateRunningNumber(db, 'quotation'));
 
   return {
+    organizationId: organizationId ?? null,
     number: documentNumber,
     clientId: body.clientId,
     status: body.status,
@@ -126,17 +137,25 @@ export async function buildQuotationDocument(
     validUntil: body.validUntil ? new Date(body.validUntil) : null,
     notes: body.notes?.trim() || null,
     items: { create: items }
-  };
+  } as Prisma.QuotationUncheckedCreateInput;
 }
 
 export async function buildProjectDocument(
   db: DbClient,
-  body: ProjectMutationPayload
+  body: ProjectMutationPayload,
+  organizationId?: string | null
 ): Promise<Prisma.ProjectUncheckedCreateInput> {
   const quotation =
     body.quotationId && body.quotationId > 0
-      ? await db.quotation.findUnique({
-          where: { id: body.quotationId },
+      ? await db.quotation.findFirst({
+          where: {
+            id: body.quotationId,
+            ...(organizationId
+              ? {
+                  OR: [{ organizationId }, { organizationId: null }]
+                }
+              : {})
+          },
           select: {
             clientId: true,
             total: true
@@ -145,6 +164,7 @@ export async function buildProjectDocument(
       : null;
 
   return {
+    organizationId: organizationId ?? null,
     name: body.name.trim(),
     clientId: quotation?.clientId ?? body.clientId,
     quotationId: body.quotationId ?? null,
@@ -158,18 +178,26 @@ export async function buildProjectDocument(
           : null
         : new Prisma.Decimal(body.budget),
     notes: body.notes?.trim() || null
-  };
+  } as Prisma.ProjectUncheckedCreateInput;
 }
 
 export async function buildInvoiceDocument(
   db: DbClient,
   body: InvoiceMutationPayload,
-  currentNumber?: string
+  currentNumber?: string,
+  organizationId?: string | null
 ): Promise<Prisma.InvoiceUncheckedCreateInput> {
   const project =
     body.projectId && body.projectId > 0
-      ? await db.project.findUnique({
-          where: { id: body.projectId },
+      ? await db.project.findFirst({
+          where: {
+            id: body.projectId,
+            ...(organizationId
+              ? {
+                  OR: [{ organizationId }, { organizationId: null }]
+                }
+              : {})
+          },
           include: {
             quotation: {
               select: {
@@ -191,6 +219,7 @@ export async function buildInvoiceDocument(
     (await generateRunningNumber(db, 'invoice'));
 
   return {
+    organizationId: organizationId ?? null,
     number: documentNumber,
     clientId: project?.clientId ?? body.clientId,
     projectId: body.projectId ?? null,
@@ -201,5 +230,5 @@ export async function buildInvoiceDocument(
     dueDate: body.dueDate ? new Date(body.dueDate) : null,
     paidAt: body.paidAt ? new Date(body.paidAt) : null,
     notes: body.notes?.trim() || null
-  };
+  } as Prisma.InvoiceUncheckedCreateInput;
 }

@@ -4,8 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { buildProjectOrderBy, mapProjectRecord } from '@/lib/agency';
 import { buildProjectDocument } from '@/lib/agency-workflows';
 import type { ProjectMutationPayload } from '@/features/projects/api/types';
+import { buildOrganizationReadScope, getActiveOrganizationId } from '@/lib/workspace';
 
 export async function GET(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const { searchParams } = request.nextUrl;
   const page = Number(searchParams.get('page') ?? 1);
   const limit = Number(searchParams.get('limit') ?? 10);
@@ -15,6 +17,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   const where: Prisma.ProjectWhereInput = {
+    ...buildOrganizationReadScope(organizationId),
     ...(status ? { status: { equals: status as ProjectStatus } } : {}),
     ...(search
       ? {
@@ -46,9 +49,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as ProjectMutationPayload;
   const created = await prisma.project.create({
-    data: await buildProjectDocument(prisma, body),
+    data: await buildProjectDocument(prisma, body, organizationId),
     include: { client: true, quotation: true }
   });
 
