@@ -42,4 +42,5 @@ export interface ProductMutationPayload {
   type: 'product' | 'service';
   price: number;
   description: string;
+  photoUrl?: string | null;
 }

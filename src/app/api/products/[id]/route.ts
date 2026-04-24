@@ -12,7 +12,8 @@ function normalizeProductPayload(body: ProductMutationPayload): Prisma.ProductUn
     description: body.description.trim(),
     type: body.type === 'service' ? ProductType.SERVICE : ProductType.PRODUCT,
     price: new Prisma.Decimal(body.price),
-    categorySlug: body.category
+    categorySlug: body.category,
+    photoUrl: body.photoUrl || null
   };
 }
 

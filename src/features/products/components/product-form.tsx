@@ -12,6 +12,23 @@ import * as z from 'zod';
 import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
 import { categoryOptions } from '@/features/products/constants/product-options';
 
+async function uploadProductImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/uploads/product-image', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload product image');
+  }
+
+  const payload = (await response.json()) as { url: string };
+  return payload.url;
+}
+
 export default function ProductForm({
   initialData,
   pageTitle
@@ -56,19 +73,26 @@ export default function ProductForm({
     validators: {
       onSubmit: productSchema
     },
-    onSubmit: ({ value }) => {
+    onSubmit: async ({ value }) => {
+      let photoUrl = initialData?.photo_url ?? null;
+
+      if (value.image?.[0]) {
+        photoUrl = await uploadProductImage(value.image[0]);
+      }
+
       const payload = {
         name: value.name,
         category: value.category,
         type: value.type,
         price: value.price!,
-        description: value.description
+        description: value.description,
+        photoUrl
       };
 
       if (isEdit) {
-        updateMutation.mutate({ id: initialData.id, values: payload });
+        await updateMutation.mutateAsync({ id: initialData.id, values: payload });
       } else {
-        createMutation.mutate(payload);
+        await createMutation.mutateAsync(payload);
       }
     }
   });
