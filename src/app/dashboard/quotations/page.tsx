@@ -1,25 +1,28 @@
+import type { SearchParams } from 'nuqs/server';
 import PageContainer from '@/components/layout/page-container';
-import ModulePlaceholder from '@/components/layout/module-placeholder';
+import QuotationListingPage from '@/features/quotations/components/quotation-listing';
+import { QuotationFormSheetTrigger } from '@/features/quotations/components/quotation-form-sheet';
+import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
   title: 'Dashboard: Quotations'
 };
 
-export default function QuotationsPage() {
+type PageProps = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function QuotationsPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  searchParamsCache.parse(searchParams);
+
   return (
     <PageContainer
       pageTitle='Quotations'
-      pageDescription='Prepare, send, and convert proposals into active projects.'
+      pageDescription='Build and track proposals before they become active projects.'
+      pageHeaderAction={<QuotationFormSheetTrigger />}
     >
-      <ModulePlaceholder
-        title='Quotation workflow is next in the build queue.'
-        description='The schema and navigation are already prepared; the CRUD layer and approval flow are the next implementation target after clients and projects.'
-        bullets={[
-          'Draft, sent, approved, rejected, and expired statuses are already mapped in Prisma.',
-          'Quotation items will link directly to the service catalog for reusable pricing.',
-          'Approved quotations will be convertible into projects without duplicate data entry.'
-        ]}
-      />
+      <QuotationListingPage />
     </PageContainer>
   );
 }

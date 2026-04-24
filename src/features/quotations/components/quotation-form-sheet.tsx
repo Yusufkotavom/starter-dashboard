@@ -1,0 +1,158 @@
+'use client';
+
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Icons } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
+import { createQuotationMutation, updateQuotationMutation } from '../api/mutations';
+import type { Quotation } from '../api/types';
+import { QUOTATION_CLIENT_OPTIONS, QUOTATION_STATUS_OPTIONS } from '../constants';
+import { quotationSchema, type QuotationFormValues } from '../schemas/quotation';
+
+interface QuotationFormSheetProps {
+  quotation?: Quotation;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function toDateInputValue(value: string | null | undefined): string {
+  return value ? value.slice(0, 10) : '';
+}
+
+export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationFormSheetProps) {
+  const isEdit = !!quotation;
+
+  const createMutation = useMutation({
+    ...createQuotationMutation,
+    onSuccess: () => {
+      toast.success('Quotation created successfully');
+      onOpenChange(false);
+      form.reset();
+    },
+    onError: () => toast.error('Failed to create quotation')
+  });
+
+  const updateMutation = useMutation({
+    ...updateQuotationMutation,
+    onSuccess: () => {
+      toast.success('Quotation updated successfully');
+      onOpenChange(false);
+    },
+    onError: () => toast.error('Failed to update quotation')
+  });
+
+  const form = useAppForm({
+    defaultValues: {
+      number: quotation?.number ?? '',
+      clientId: quotation?.clientId ?? Number(QUOTATION_CLIENT_OPTIONS[0]?.value ?? 0),
+      status: quotation?.status ?? 'DRAFT',
+      total: quotation?.total ?? 0,
+      validUntil: toDateInputValue(quotation?.validUntil),
+      notes: quotation?.notes ?? '',
+      itemsCount: quotation?.itemsCount ?? 1
+    } as QuotationFormValues,
+    validators: {
+      onSubmit: quotationSchema
+    },
+    onSubmit: async ({ value }) => {
+      const payload = {
+        ...value,
+        validUntil: value.validUntil || null,
+        notes: value.notes || null
+      };
+
+      if (isEdit) {
+        await updateMutation.mutateAsync({ id: quotation.id, values: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+    }
+  });
+
+  const { FormTextField, FormSelectField, FormTextareaField } =
+    useFormFields<QuotationFormValues>();
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className='flex flex-col sm:max-w-xl'>
+        <SheetHeader>
+          <SheetTitle>{isEdit ? 'Edit Quotation' : 'New Quotation'}</SheetTitle>
+          <SheetDescription>
+            Build proposal records that can later convert into active projects.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className='flex-1 overflow-auto pe-4'>
+          <form.AppForm>
+            <form.Form id='quotation-form-sheet' className='space-y-4 py-4'>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <FormTextField name='number' label='Quotation Number' required />
+                <FormSelectField
+                  name='clientId'
+                  label='Client'
+                  required
+                  options={QUOTATION_CLIENT_OPTIONS}
+                />
+              </div>
+
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+                <FormSelectField
+                  name='status'
+                  label='Status'
+                  required
+                  options={QUOTATION_STATUS_OPTIONS}
+                />
+                <FormTextField name='total' label='Total Amount' required type='number' />
+                <FormTextField name='itemsCount' label='Line Items' required type='number' />
+              </div>
+
+              <FormTextField name='validUntil' label='Valid Until' type='date' />
+
+              <FormTextareaField
+                name='notes'
+                label='Notes'
+                rows={4}
+                placeholder='Scope notes, commercial terms, or exclusions.'
+              />
+            </form.Form>
+          </form.AppForm>
+        </div>
+
+        <SheetFooter className='mt-4'>
+          <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type='submit' form='quotation-form-sheet' isLoading={isPending}>
+            <Icons.check className='mr-2 h-4 w-4' />
+            {isEdit ? 'Update Quotation' : 'Create Quotation'}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function QuotationFormSheetTrigger() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>
+        <Icons.add className='mr-2 h-4 w-4' />
+        New Quotation
+      </Button>
+      <QuotationFormSheet open={open} onOpenChange={setOpen} />
+    </>
+  );
+}

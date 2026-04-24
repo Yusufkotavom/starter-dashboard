@@ -1,25 +1,28 @@
+import type { SearchParams } from 'nuqs/server';
 import PageContainer from '@/components/layout/page-container';
-import ModulePlaceholder from '@/components/layout/module-placeholder';
+import InvoiceListingPage from '@/features/invoices/components/invoice-listing';
+import { InvoiceFormSheetTrigger } from '@/features/invoices/components/invoice-form-sheet';
+import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
   title: 'Dashboard: Invoices'
 };
 
-export default function InvoicesPage() {
+type PageProps = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function InvoicesPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  searchParamsCache.parse(searchParams);
+
   return (
     <PageContainer
       pageTitle='Invoices'
-      pageDescription='Issue invoices from approved work and monitor collection status.'
+      pageDescription='Track billing status, due dates, and invoice value per client.'
+      pageHeaderAction={<InvoiceFormSheetTrigger />}
     >
-      <ModulePlaceholder
-        title='Invoice management is planned for phase 2.'
-        description='This finance section is wired in the navigation so the agency flow is coherent, but the detailed CRUD and payment reconciliation screens are not built yet.'
-        bullets={[
-          'Invoice status support is already modeled in Prisma: draft, sent, paid, partial, overdue, and cancelled.',
-          'Invoices will connect to clients and optionally to projects for delivery-based billing.',
-          'Partial payment and overdue tracking will roll into the reports module later.'
-        ]}
-      />
+      <InvoiceListingPage />
     </PageContainer>
   );
 }

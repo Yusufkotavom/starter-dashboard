@@ -1,25 +1,28 @@
+import type { SearchParams } from 'nuqs/server';
 import PageContainer from '@/components/layout/page-container';
-import ModulePlaceholder from '@/components/layout/module-placeholder';
+import ExpenseListingPage from '@/features/expenses/components/expense-listing';
+import { ExpenseFormSheetTrigger } from '@/features/expenses/components/expense-form-sheet';
+import { searchParamsCache } from '@/lib/searchparams';
 
 export const metadata = {
   title: 'Dashboard: Expenses'
 };
 
-export default function ExpensesPage() {
+type PageProps = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function ExpensesPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  searchParamsCache.parse(searchParams);
+
   return (
     <PageContainer
       pageTitle='Expenses'
-      pageDescription='Track project costs, vendor spend, and operational outflow.'
+      pageDescription='Track cost outflow tied to delivery, vendors, and operations.'
+      pageHeaderAction={<ExpenseFormSheetTrigger />}
     >
-      <ModulePlaceholder
-        title='Expense tracking is reserved for the finance rollout.'
-        description='The data model is already present so project profitability can be layered in later without reshaping the database.'
-        bullets={[
-          'Expenses can be linked to projects for profitability analysis.',
-          'Vendor, category, receipt URL, and notes are already represented in Prisma.',
-          'Reports will use this dataset to calculate project margin and cost breakdowns.'
-        ]}
-      />
+      <ExpenseListingPage />
     </PageContainer>
   );
 }
