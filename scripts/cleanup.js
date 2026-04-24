@@ -487,6 +487,50 @@ export const config = {
     dependencies: [],
     navItemsToRemove: ['/dashboard/notifications']
   },
+  agency: {
+    name: 'Agency Modules (CRM, Services, Projects, Finance, Reports, Settings)',
+    folders: [
+      'src/app/dashboard/clients',
+      'src/app/dashboard/categories',
+      'src/app/dashboard/projects',
+      'src/app/dashboard/quotations',
+      'src/app/dashboard/invoices',
+      'src/app/dashboard/payments',
+      'src/app/dashboard/expenses',
+      'src/app/dashboard/reports',
+      'src/app/dashboard/settings',
+      'src/features/clients',
+      'src/features/categories',
+      'src/features/projects',
+      'src/features/quotations',
+      'src/features/invoices',
+      'src/features/payments',
+      'src/features/expenses',
+      'src/features/settings'
+    ],
+    files: [
+      'src/constants/mock-api-clients.ts',
+      'src/constants/mock-api-projects.ts',
+      'src/constants/mock-api-quotations.ts',
+      'src/constants/mock-api-invoices.ts',
+      'src/constants/mock-api-payments.ts',
+      'src/constants/mock-api-expenses.ts'
+    ],
+    dependencies: [],
+    navItemsToRemove: [
+      '/dashboard/clients',
+      '/dashboard/product',
+      '/dashboard/categories',
+      '/dashboard/quotations',
+      '/dashboard/projects',
+      '/dashboard/users',
+      '/dashboard/invoices',
+      '/dashboard/payments',
+      '/dashboard/expenses',
+      '/dashboard/reports',
+      '/dashboard/settings'
+    ]
+  },
   examples: {
     name: 'Examples (Forms, React Query demo, Icons)',
     folders: [
@@ -1194,14 +1238,14 @@ function disableModules(moduleNames, options = {}) {
           depth--;
         }
       }
-      // Walk forward to find closing brace
-      let end = idx;
+      // Walk forward from the opening brace to find the matching closing brace
+      let end = start;
       depth = 0;
       while (end < content.length) {
         if (content[end] === '{') depth++;
         if (content[end] === '}') {
           depth--;
-          if (depth < 0) {
+          if (depth === 0) {
             end++;
             break;
           }

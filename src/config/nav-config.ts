@@ -55,7 +55,8 @@ export const navGroups: NavGroup[] = [
         icon: 'user',
         shortcut: ['c', 'l'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       }
     ]
   },
@@ -72,7 +73,8 @@ export const navGroups: NavGroup[] = [
           {
             title: 'All Services',
             url: '/dashboard/product',
-            icon: 'product'
+            icon: 'product',
+            visible: () => false // disabled
           },
           {
             title: 'Add Service',
@@ -82,7 +84,8 @@ export const navGroups: NavGroup[] = [
           {
             title: 'Service Types',
             url: '/dashboard/categories',
-            icon: 'forms'
+            icon: 'forms',
+            visible: () => false // disabled
           }
         ]
       },
@@ -92,7 +95,8 @@ export const navGroups: NavGroup[] = [
         icon: 'page',
         shortcut: ['q', 'q'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       }
     ]
   },
@@ -105,7 +109,8 @@ export const navGroups: NavGroup[] = [
         icon: 'kanban',
         shortcut: ['p', 'j'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       },
       {
         title: 'Task Board',
@@ -122,7 +127,8 @@ export const navGroups: NavGroup[] = [
         icon: 'teams',
         shortcut: ['t', 'm'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       }
     ]
   },
@@ -135,7 +141,8 @@ export const navGroups: NavGroup[] = [
         icon: 'billing',
         shortcut: ['i', 'v'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       },
       {
         title: 'Payments',
@@ -143,7 +150,8 @@ export const navGroups: NavGroup[] = [
         icon: 'billing',
         shortcut: ['p', 'y'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       },
       {
         title: 'Expenses',
@@ -151,7 +159,8 @@ export const navGroups: NavGroup[] = [
         icon: 'trendingDown',
         shortcut: ['e', 'x'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       }
     ]
   },
@@ -164,7 +173,8 @@ export const navGroups: NavGroup[] = [
         icon: 'trendingUp',
         shortcut: ['r', 'p'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       }
     ]
   },
@@ -177,7 +187,8 @@ export const navGroups: NavGroup[] = [
         icon: 'settings',
         shortcut: ['s', 't'],
         isActive: false,
-        items: []
+        items: [],
+        visible: () => false // disabled
       },
       {
         title: 'Profile',

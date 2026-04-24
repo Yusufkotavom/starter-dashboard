@@ -49,6 +49,10 @@ export function useFilteredNavItems(items: NavItem[]) {
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
+        if (item.visible && item.visible() === false) {
+          return false;
+        }
+
         // No access restrictions
         if (!item.access) {
           return true;
@@ -102,6 +106,10 @@ export function useFilteredNavItems(items: NavItem[]) {
         // Recursively filter child items
         if (item.items && item.items.length > 0) {
           const filteredChildren = item.items.filter((childItem) => {
+            if (childItem.visible && childItem.visible() === false) {
+              return false;
+            }
+
             // No access restrictions
             if (!childItem.access) {
               return true;
@@ -150,7 +158,8 @@ export function useFilteredNavItems(items: NavItem[]) {
         }
 
         return item;
-      });
+      })
+      .filter((item) => !item.items || item.url !== '#' || item.items.length > 0);
   }, [items, accessContext]);
 
   return filteredItems;
