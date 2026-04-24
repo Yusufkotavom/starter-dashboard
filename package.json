@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node scripts/postinstall.js 2>/dev/null; next dev",
     "build": "prisma generate && next build",
+    "build:vercel": "prisma generate && prisma db push && next build",
     "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -117,12 +118,12 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3"
   },
-  "prisma": {
-    "seed": "node prisma/seed.mjs"
-  },
   "lint-staged": {
     "!(scripts)/**/*.{js,jsx,tsx,ts,css,less,scss,sass}": [
       "oxfmt --write"
     ]
+  },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
   }
 }

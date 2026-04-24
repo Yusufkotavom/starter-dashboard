@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { mapMessageRecord } from '@/lib/communications';
 import { buildDocumentUrl, createDocumentToken, getDocumentOrigin } from '@/lib/documents/shared';
 import { getQuotationDocumentData } from '@/lib/documents/quotations';
+import { isPrismaTableMissingError } from '@/lib/prisma-errors';
 import {
   CommunicationChannel,
   ConversationStatus,
@@ -29,109 +30,127 @@ export async function POST(request: NextRequest, { params }: Params) {
     );
   }
 
-  const quotationRecord = await prisma.quotation.findUnique({
-    where: { id: quotation.id },
-    select: {
-      clientId: true,
-      organizationId: true,
-      status: true
-    }
-  });
-
-  if (!quotationRecord) {
-    return NextResponse.json({ message: `Quotation with ID ${id} not found` }, { status: 404 });
-  }
-
-  const origin = getDocumentOrigin(request);
-  const documentToken = createDocumentToken('quotation', quotation.id);
-  const documentUrl = buildDocumentUrl(origin, 'quotation', quotation.id, documentToken);
-  const messageBody = renderQuotationWhatsAppMessage({
-    number: quotation.number,
-    clientName: quotation.clientName,
-    company: quotation.clientCompany,
-    total: quotation.total,
-    validUntil: quotation.validUntil,
-    documentUrl
-  });
-
-  const conversation = await prisma.conversation.upsert({
-    where: {
-      channel_phone: {
-        channel: CommunicationChannel.WHATSAPP,
-        phone: quotation.clientPhone
+  try {
+    const quotationRecord = await prisma.quotation.findUnique({
+      where: { id: quotation.id },
+      select: {
+        clientId: true,
+        organizationId: true,
+        status: true
       }
-    },
-    create: {
-      organizationId: quotationRecord.organizationId,
-      channel: CommunicationChannel.WHATSAPP,
+    });
+
+    if (!quotationRecord) {
+      return NextResponse.json({ message: `Quotation with ID ${id} not found` }, { status: 404 });
+    }
+
+    const origin = getDocumentOrigin(request);
+    const documentToken = createDocumentToken('quotation', quotation.id);
+    const documentUrl = buildDocumentUrl(origin, 'quotation', quotation.id, documentToken);
+    const messageBody = renderQuotationWhatsAppMessage({
+      number: quotation.number,
+      clientName: quotation.clientName,
+      company: quotation.clientCompany,
+      total: quotation.total,
+      validUntil: quotation.validUntil,
+      documentUrl
+    });
+
+    const conversation = await prisma.conversation.upsert({
+      where: {
+        channel_phone: {
+          channel: CommunicationChannel.WHATSAPP,
+          phone: quotation.clientPhone
+        }
+      },
+      create: {
+        organizationId: quotationRecord.organizationId,
+        channel: CommunicationChannel.WHATSAPP,
+        phone: quotation.clientPhone,
+        displayName: quotation.clientCompany || quotation.clientName,
+        clientId: quotationRecord.clientId,
+        status: ConversationStatus.OPEN,
+        lastMessagePreview: messageBody,
+        lastMessageAt: new Date()
+      },
+      update: {
+        clientId: quotationRecord.clientId,
+        displayName: quotation.clientCompany || quotation.clientName,
+        status: ConversationStatus.OPEN,
+        lastMessagePreview: messageBody,
+        lastMessageAt: new Date()
+      }
+    });
+
+    const result = await sendWhatsAppMessage({
       phone: quotation.clientPhone,
-      displayName: quotation.clientCompany || quotation.clientName,
-      clientId: quotationRecord.clientId,
-      status: ConversationStatus.OPEN,
-      lastMessagePreview: messageBody,
-      lastMessageAt: new Date()
-    },
-    update: {
-      clientId: quotationRecord.clientId,
-      displayName: quotation.clientCompany || quotation.clientName,
-      status: ConversationStatus.OPEN,
-      lastMessagePreview: messageBody,
-      lastMessageAt: new Date()
-    }
-  });
-
-  const result = await sendWhatsAppMessage({
-    phone: quotation.clientPhone,
-    body: messageBody,
-    documentUrl,
-    conversationId: conversation.id,
-    externalThreadId: conversation.externalThreadId,
-    metadata: {
-      source: 'quotation-send',
-      quotationId: quotation.id,
-      quotationNumber: quotation.number
-    }
-  });
-
-  const message = await prisma.messageLog.create({
-    data: {
-      organizationId: quotationRecord.organizationId,
-      conversationId: conversation.id,
-      clientId: quotationRecord.clientId,
-      channel: CommunicationChannel.WHATSAPP,
-      direction: MessageDirection.OUTBOUND,
-      status: result.status,
-      provider: result.provider,
-      externalMessageId: result.id,
       body: messageBody,
       documentUrl,
-      sentAt: new Date(),
+      conversationId: conversation.id,
+      externalThreadId: conversation.externalThreadId,
       metadata: {
         source: 'quotation-send',
         quotationId: quotation.id,
         quotationNumber: quotation.number
       }
-    }
-  });
-
-  const nextStatus =
-    quotationRecord.status === QuotationStatus.DRAFT
-      ? QuotationStatus.SENT
-      : quotationRecord.status;
-  if (nextStatus !== quotationRecord.status) {
-    await prisma.quotation.update({
-      where: { id: quotation.id },
-      data: { status: nextStatus }
     });
-  }
 
-  return NextResponse.json({
-    success: true,
-    provider: result.provider,
-    messageId: result.id,
-    status: nextStatus,
-    documentUrl,
-    conversationId: conversation.id,
-    message: mapMessageRecord(message)
-  });
+    const message = await prisma.messageLog.create({
+      data: {
+        organizationId: quotationRecord.organizationId,
+        conversationId: conversation.id,
+        clientId: quotationRecord.clientId,
+        channel: CommunicationChannel.WHATSAPP,
+        direction: MessageDirection.OUTBOUND,
+        status: result.status,
+        provider: result.provider,
+        externalMessageId: result.id,
+        body: messageBody,
+        documentUrl,
+        sentAt: new Date(),
+        metadata: {
+          source: 'quotation-send',
+          quotationId: quotation.id,
+          quotationNumber: quotation.number
+        }
+      }
+    });
+
+    const nextStatus =
+      quotationRecord.status === QuotationStatus.DRAFT
+        ? QuotationStatus.SENT
+        : quotationRecord.status;
+    if (nextStatus !== quotationRecord.status) {
+      await prisma.quotation.update({
+        where: { id: quotation.id },
+        data: { status: nextStatus }
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      provider: result.provider,
+      messageId: result.id,
+      status: nextStatus,
+      documentUrl,
+      conversationId: conversation.id,
+      message: mapMessageRecord(message)
+    });
+  } catch (error) {
+    if (isPrismaTableMissingError(error, 'Conversation')) {
+      return NextResponse.json(
+        { message: 'Communications schema has not been migrated yet.' },
+        { status: 503 }
+      );
+    }
+
+    if (isPrismaTableMissingError(error, 'MessageLog')) {
+      return NextResponse.json(
+        { message: 'Communications schema has not been migrated yet.' },
+        { status: 503 }
+      );
+    }
+
+    throw error;
+  }
 }

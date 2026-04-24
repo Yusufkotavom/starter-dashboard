@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mapConversationRecord } from '@/lib/communications';
 import { ConversationStatus, Prisma } from '@/lib/prisma-client';
+import { isPrismaTableMissingError } from '@/lib/prisma-errors';
 import { prisma } from '@/lib/prisma';
 import { buildOrganizationReadScope, getActiveOrganizationId } from '@/lib/workspace';
 
@@ -34,24 +35,40 @@ export async function GET(request: NextRequest) {
     ]
   };
 
-  const [items, total] = await Promise.all([
-    prisma.conversation.findMany({
-      where,
-      include: {
-        client: true
-      },
-      orderBy: [{ lastMessageAt: 'desc' }, { updatedAt: 'desc' }],
-      skip,
-      take: limit
-    }),
-    prisma.conversation.count({ where })
-  ]);
+  try {
+    const [items, total] = await Promise.all([
+      prisma.conversation.findMany({
+        where,
+        include: {
+          client: true
+        },
+        orderBy: [{ lastMessageAt: 'desc' }, { updatedAt: 'desc' }],
+        skip,
+        take: limit
+      }),
+      prisma.conversation.count({ where })
+    ]);
 
-  return NextResponse.json({
-    items: items.map(mapConversationRecord),
-    total_items: total,
-    page,
-    per_page: limit,
-    total_pages: Math.max(Math.ceil(total / limit), 1)
-  });
+    return NextResponse.json({
+      items: items.map(mapConversationRecord),
+      total_items: total,
+      page,
+      per_page: limit,
+      total_pages: Math.max(Math.ceil(total / limit), 1)
+    });
+  } catch (error) {
+    if (isPrismaTableMissingError(error, 'Conversation')) {
+      return NextResponse.json({
+        items: [],
+        total_items: 0,
+        page,
+        per_page: limit,
+        total_pages: 1,
+        unavailable: true,
+        message: 'Communications schema has not been migrated yet.'
+      });
+    }
+
+    throw error;
+  }
 }
