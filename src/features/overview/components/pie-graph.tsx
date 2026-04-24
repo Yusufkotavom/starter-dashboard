@@ -1,11 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fakeInvoices } from '@/constants/mock-api-invoices';
+import { prisma } from '@/lib/prisma';
 
-export function PieGraph() {
+export async function PieGraph() {
+  const invoices = await prisma.invoice.findMany({ select: { status: true } });
   const statusBreakdown = ['DRAFT', 'SENT', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'].map(
     (status) => ({
       status,
-      count: fakeInvoices.records.filter((item) => item.status === status).length
+      count: invoices.filter((item) => item.status === status).length
     })
   );
   const total = statusBreakdown.reduce((sum, item) => sum + item.count, 0) || 1;

@@ -9,66 +9,49 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
-import { fakeClients } from '@/constants/mock-api-clients';
-import { fakeProjects } from '@/constants/mock-api-projects';
-import { fakeQuotations } from '@/constants/mock-api-quotations';
-import { fakeInvoices } from '@/constants/mock-api-invoices';
-import { fakePayments } from '@/constants/mock-api-payments';
-import { fakeExpenses } from '@/constants/mock-api-expenses';
+import { getAgencyMetrics } from '@/lib/agency';
+import { prisma } from '@/lib/prisma';
 import { formatPrice } from '@/lib/utils';
 import React from 'react';
 
-function buildKpis() {
-  const activeProjects = fakeProjects.records.filter((item) => item.status === 'ACTIVE').length;
-  const openLeads = fakeClients.records.filter((item) => item.status === 'LEAD').length;
-  const approvedPipeline = fakeQuotations.records
-    .filter((item) => item.status === 'APPROVED')
-    .reduce((sum, item) => sum + item.total, 0);
-  const outstandingInvoices = fakeInvoices.records
-    .filter(
-      (item) => item.status === 'SENT' || item.status === 'PARTIAL' || item.status === 'OVERDUE'
-    )
-    .reduce((sum, item) => sum + item.total, 0);
-  const cashIn = fakePayments.records.reduce((sum, item) => sum + item.amount, 0);
-  const costOut = fakeExpenses.records.reduce((sum, item) => sum + item.amount, 0);
-
+function buildKpis(metrics: Awaited<ReturnType<typeof getAgencyMetrics>>) {
   return [
     {
       title: 'Approved Pipeline',
-      value: formatPrice(approvedPipeline),
+      value: formatPrice(metrics.approvedPipeline),
       badge: '+Sales',
       icon: Icons.trendingUp,
       body: 'Commercial value already approved and ready to execute.',
-      footer: `${openLeads} open leads still waiting to convert`
+      footer: `${metrics.openLeads} open leads still waiting to convert`
     },
     {
       title: 'Active Projects',
-      value: String(activeProjects),
+      value: String(metrics.activeProjects),
       badge: 'Delivery',
       icon: Icons.kanban,
       body: 'Current agency workload that the team is actively delivering.',
-      footer: `${fakeProjects.records.length} total tracked projects`
+      footer: `${metrics.totalProjects} total tracked projects`
     },
     {
       title: 'Outstanding Invoices',
-      value: formatPrice(outstandingInvoices),
+      value: formatPrice(metrics.outstandingInvoices),
       badge: 'Finance',
       icon: Icons.billing,
       body: 'Receivables still pending collection from client billing.',
-      footer: `${fakeInvoices.records.filter((item) => item.status === 'OVERDUE').length} overdue invoices need follow-up`
+      footer: `${metrics.overdueInvoices} overdue invoices need follow-up`
     },
     {
       title: 'Gross Spread',
-      value: formatPrice(cashIn - costOut),
+      value: formatPrice(metrics.grossSpread),
       badge: 'Cashflow',
       icon: Icons.trendingDown,
       body: 'Recorded cash-in minus operational and delivery-related cost out.',
-      footer: `${formatPrice(cashIn)} in payments vs ${formatPrice(costOut)} in expenses`
+      footer: `${formatPrice(metrics.cashIn)} in payments vs ${formatPrice(metrics.costOut)} in expenses`
     }
   ];
 }
 
-export default function OverViewLayout({
+export default async function OverViewLayout({
   sales,
   pie_stats,
   bar_stats,
@@ -79,7 +62,8 @@ export default function OverViewLayout({
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
 }) {
-  const kpis = buildKpis();
+  const metrics = await getAgencyMetrics(prisma);
+  const kpis = buildKpis(metrics);
 
   return (
     <PageContainer>

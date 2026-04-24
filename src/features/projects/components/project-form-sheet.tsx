@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
@@ -16,7 +16,8 @@ import {
 import { toast } from 'sonner';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
 import type { Project } from '../api/types';
-import { PROJECT_CLIENT_OPTIONS, PROJECT_STATUS_OPTIONS } from '../constants';
+import { clientsQueryOptions } from '@/features/clients/api/queries';
+import { PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
 
 interface ProjectFormSheetProps {
@@ -35,6 +36,12 @@ function normalizeOptionalNumber(value: number | string | null | undefined): num
 
 export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormSheetProps) {
   const isEdit = !!project;
+  const { data: clientData } = useQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
+  const clientOptions =
+    clientData?.items.map((client) => ({
+      value: client.id,
+      label: client.company ? `${client.company} - ${client.name}` : client.name
+    })) ?? [];
 
   const createMutation = useMutation({
     ...createProjectMutation,
@@ -62,7 +69,7 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
   const form = useAppForm({
     defaultValues: {
       name: project?.name ?? '',
-      clientId: project?.clientId ?? Number(PROJECT_CLIENT_OPTIONS[0]?.value ?? 0),
+      clientId: project?.clientId ?? Number(clientOptions[0]?.value ?? 0),
       quotationId: project?.quotationId ?? null,
       status: project?.status ?? 'ACTIVE',
       startDate: toDateInputValue(project?.startDate),
@@ -120,7 +127,7 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
                 name='clientId'
                 label='Client'
                 required
-                options={PROJECT_CLIENT_OPTIONS}
+                options={clientOptions}
                 placeholder='Select client'
               />
 

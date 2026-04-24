@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/sheet';
 import { createExpenseMutation, updateExpenseMutation } from '../api/mutations';
 import type { Expense } from '../api/types';
-import { EXPENSE_CATEGORY_OPTIONS, EXPENSE_PROJECT_OPTIONS } from '../constants';
+import { projectsQueryOptions } from '@/features/projects/api/queries';
+import { EXPENSE_CATEGORY_OPTIONS } from '../constants';
 import { expenseSchema, type ExpenseFormValues } from '../schemas/expense';
 
 interface ExpenseFormSheetProps {
@@ -31,6 +32,14 @@ function toDateInputValue(value: string | null | undefined): string {
 
 export function ExpenseFormSheet({ expense, open, onOpenChange }: ExpenseFormSheetProps) {
   const isEdit = !!expense;
+  const { data: projectData } = useQuery(projectsQueryOptions({ page: 1, limit: 1000 }));
+  const projectOptions = [
+    { value: 0, label: 'Unassigned expense' },
+    ...(projectData?.items.map((project) => ({
+      value: project.id,
+      label: project.name
+    })) ?? [])
+  ];
 
   const createMutation = useMutation({
     ...createExpenseMutation,
@@ -98,7 +107,7 @@ export function ExpenseFormSheet({ expense, open, onOpenChange }: ExpenseFormShe
                   name='projectId'
                   label='Project'
                   required
-                  options={EXPENSE_PROJECT_OPTIONS}
+                  options={projectOptions}
                 />
                 <FormSelectField
                   name='category'

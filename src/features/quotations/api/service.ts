@@ -1,4 +1,4 @@
-import { fakeQuotations } from '@/constants/mock-api-quotations';
+import { apiClient } from '@/lib/api-client';
 import type {
   Quotation,
   QuotationFilters,
@@ -6,23 +6,31 @@ import type {
   QuotationMutationPayload
 } from './types';
 
+function createQuotationQueryString(filters: QuotationFilters): string {
+  const searchParams = new URLSearchParams();
+
+  if (filters.page) searchParams.set('page', String(filters.page));
+  if (filters.limit) searchParams.set('limit', String(filters.limit));
+  if (filters.search) searchParams.set('search', filters.search);
+  if (filters.status) searchParams.set('status', filters.status);
+  if (filters.sort) searchParams.set('sort', filters.sort);
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
 export async function getQuotations(filters: QuotationFilters): Promise<QuotationsResponse> {
-  return fakeQuotations.getQuotations(filters);
+  return apiClient<QuotationsResponse>(`/quotations${createQuotationQueryString(filters)}`);
 }
 
 export async function getQuotationById(id: number): Promise<Quotation | null> {
-  return fakeQuotations.getQuotationById(id);
+  return apiClient<Quotation>(`/quotations/${id}`);
 }
 
 export async function createQuotation(data: QuotationMutationPayload): Promise<Quotation> {
-  return fakeQuotations.createQuotation({
-    number: data.number,
-    clientId: data.clientId,
-    status: data.status,
-    total: data.total,
-    validUntil: data.validUntil ?? null,
-    notes: data.notes ?? null,
-    itemsCount: data.itemsCount
+  return apiClient<Quotation>('/quotations', {
+    method: 'POST',
+    body: JSON.stringify(data)
   });
 }
 
@@ -30,17 +38,14 @@ export async function updateQuotation(
   id: number,
   data: QuotationMutationPayload
 ): Promise<Quotation> {
-  return fakeQuotations.updateQuotation(id, {
-    number: data.number,
-    clientId: data.clientId,
-    status: data.status,
-    total: data.total,
-    validUntil: data.validUntil ?? null,
-    notes: data.notes ?? null,
-    itemsCount: data.itemsCount
+  return apiClient<Quotation>(`/quotations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
   });
 }
 
 export async function deleteQuotation(id: number): Promise<void> {
-  return fakeQuotations.deleteQuotation(id);
+  await apiClient(`/quotations/${id}`, {
+    method: 'DELETE'
+  });
 }

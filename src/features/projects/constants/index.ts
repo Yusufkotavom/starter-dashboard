@@ -1,5 +1,3 @@
-import { fakeClients } from '@/constants/mock-api-clients';
-
 export const PROJECT_STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'COMPLETED', label: 'Completed' },
@@ -20,8 +18,3 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
   PAUSED: 'Paused',
   CANCELLED: 'Cancelled'
 };
-
-export const PROJECT_CLIENT_OPTIONS = fakeClients.records.map((client) => ({
-  value: client.id,
-  label: client.company ? `${client.company} - ${client.name}` : client.name
-}));

@@ -1,38 +1,43 @@
-import { fakeClients } from '@/constants/mock-api-clients';
+import { apiClient } from '@/lib/api-client';
 import type { Client, ClientFilters, ClientsResponse, ClientMutationPayload } from './types';
 
+function createClientQueryString(filters: ClientFilters): string {
+  const searchParams = new URLSearchParams();
+
+  if (filters.page) searchParams.set('page', String(filters.page));
+  if (filters.limit) searchParams.set('limit', String(filters.limit));
+  if (filters.search) searchParams.set('search', filters.search);
+  if (filters.status) searchParams.set('status', filters.status);
+  if (filters.sort) searchParams.set('sort', filters.sort);
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
 export async function getClients(filters: ClientFilters): Promise<ClientsResponse> {
-  return fakeClients.getClients(filters);
+  return apiClient<ClientsResponse>(`/clients${createClientQueryString(filters)}`);
 }
 
 export async function getClientById(id: number): Promise<Client | null> {
-  return fakeClients.getClientById(id);
+  return apiClient<Client>(`/clients/${id}`);
 }
 
 export async function createClient(data: ClientMutationPayload): Promise<Client> {
-  return fakeClients.createClient({
-    name: data.name,
-    email: data.email,
-    phone: data.phone ?? null,
-    company: data.company ?? null,
-    address: data.address ?? null,
-    status: data.status,
-    notes: data.notes ?? null
+  return apiClient<Client>('/clients', {
+    method: 'POST',
+    body: JSON.stringify(data)
   });
 }
 
 export async function updateClient(id: number, data: ClientMutationPayload): Promise<Client> {
-  return fakeClients.updateClient(id, {
-    name: data.name,
-    email: data.email,
-    phone: data.phone ?? null,
-    company: data.company ?? null,
-    address: data.address ?? null,
-    status: data.status,
-    notes: data.notes ?? null
+  return apiClient<Client>(`/clients/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
   });
 }
 
 export async function deleteClient(id: number): Promise<void> {
-  return fakeClients.deleteClient(id);
+  await apiClient(`/clients/${id}`, {
+    method: 'DELETE'
+  });
 }

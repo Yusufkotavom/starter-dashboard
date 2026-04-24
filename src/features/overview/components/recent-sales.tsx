@@ -1,12 +1,17 @@
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { fakePayments } from '@/constants/mock-api-payments';
+import { prisma } from '@/lib/prisma';
+import { mapPaymentRecord } from '@/lib/agency';
 import { formatPrice } from '@/lib/utils';
 
-const recentPayments = fakePayments.records
-  .toSorted((a, b) => b.paidAt.localeCompare(a.paidAt))
-  .slice(0, 5);
+export async function RecentSales() {
+  const recentPayments = (
+    await prisma.payment.findMany({
+      include: { invoice: { include: { client: true } } },
+      orderBy: { paidAt: 'desc' },
+      take: 5
+    })
+  ).map(mapPaymentRecord);
 
-export function RecentSales() {
   return (
     <Card className='h-full'>
       <CardHeader>

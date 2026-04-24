@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/sheet';
 import { createQuotationMutation, updateQuotationMutation } from '../api/mutations';
 import type { Quotation } from '../api/types';
-import { QUOTATION_CLIENT_OPTIONS, QUOTATION_STATUS_OPTIONS } from '../constants';
+import { clientsQueryOptions } from '@/features/clients/api/queries';
+import { QUOTATION_STATUS_OPTIONS } from '../constants';
 import { quotationSchema, type QuotationFormValues } from '../schemas/quotation';
 
 interface QuotationFormSheetProps {
@@ -31,6 +32,12 @@ function toDateInputValue(value: string | null | undefined): string {
 
 export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationFormSheetProps) {
   const isEdit = !!quotation;
+  const { data: clientData } = useQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
+  const clientOptions =
+    clientData?.items.map((client) => ({
+      value: client.id,
+      label: client.company ? `${client.company} - ${client.name}` : client.name
+    })) ?? [];
 
   const createMutation = useMutation({
     ...createQuotationMutation,
@@ -54,7 +61,7 @@ export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationF
   const form = useAppForm({
     defaultValues: {
       number: quotation?.number ?? '',
-      clientId: quotation?.clientId ?? Number(QUOTATION_CLIENT_OPTIONS[0]?.value ?? 0),
+      clientId: quotation?.clientId ?? Number(clientOptions[0]?.value ?? 0),
       status: quotation?.status ?? 'DRAFT',
       total: quotation?.total ?? 0,
       validUntil: toDateInputValue(quotation?.validUntil),
@@ -98,12 +105,7 @@ export function QuotationFormSheet({ quotation, open, onOpenChange }: QuotationF
             <form.Form id='quotation-form-sheet' className='space-y-4 py-4'>
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                 <FormTextField name='number' label='Quotation Number' required />
-                <FormSelectField
-                  name='clientId'
-                  label='Client'
-                  required
-                  options={QUOTATION_CLIENT_OPTIONS}
-                />
+                <FormSelectField name='clientId' label='Client' required options={clientOptions} />
               </div>
 
               <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>

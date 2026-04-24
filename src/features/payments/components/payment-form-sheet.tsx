@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/sheet';
 import { createPaymentMutation, updatePaymentMutation } from '../api/mutations';
 import type { Payment } from '../api/types';
-import { PAYMENT_INVOICE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '../constants';
+import { invoicesQueryOptions } from '@/features/invoices/api/queries';
+import { PAYMENT_METHOD_OPTIONS } from '../constants';
 import { paymentSchema, type PaymentFormValues } from '../schemas/payment';
 
 interface PaymentFormSheetProps {
@@ -31,6 +32,12 @@ function toDateInputValue(value: string | null | undefined): string {
 
 export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormSheetProps) {
   const isEdit = !!payment;
+  const { data: invoiceData } = useQuery(invoicesQueryOptions({ page: 1, limit: 1000 }));
+  const invoiceOptions =
+    invoiceData?.items.map((invoice) => ({
+      value: invoice.id,
+      label: `${invoice.number} - ${invoice.clientName}`
+    })) ?? [];
 
   const createMutation = useMutation({
     ...createPaymentMutation,
@@ -53,7 +60,7 @@ export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormShe
 
   const form = useAppForm({
     defaultValues: {
-      invoiceId: payment?.invoiceId ?? Number(PAYMENT_INVOICE_OPTIONS[0]?.value ?? 0),
+      invoiceId: payment?.invoiceId ?? Number(invoiceOptions[0]?.value ?? 0),
       amount: payment?.amount ?? 0,
       method: payment?.method ?? 'BANK_TRANSFER',
       reference: payment?.reference ?? '',
@@ -92,12 +99,7 @@ export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormShe
         <div className='flex-1 overflow-auto pe-4'>
           <form.AppForm>
             <form.Form id='payment-form-sheet' className='space-y-4 py-4'>
-              <FormSelectField
-                name='invoiceId'
-                label='Invoice'
-                required
-                options={PAYMENT_INVOICE_OPTIONS}
-              />
+              <FormSelectField name='invoiceId' label='Invoice' required options={invoiceOptions} />
 
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                 <FormTextField name='amount' label='Amount' required type='number' />

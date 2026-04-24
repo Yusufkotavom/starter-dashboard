@@ -1,35 +1,25 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fakeQuotations } from '@/constants/mock-api-quotations';
-import { fakeInvoices } from '@/constants/mock-api-invoices';
+import { prisma } from '@/lib/prisma';
+import { getAgencyMetrics } from '@/lib/agency';
 import { formatPrice } from '@/lib/utils';
 
-export function AreaGraph() {
-  const approvedPipeline = fakeQuotations.records
-    .filter((item) => item.status === 'APPROVED')
-    .reduce((sum, item) => sum + item.total, 0);
-  const sentPipeline = fakeQuotations.records
-    .filter((item) => item.status === 'SENT')
-    .reduce((sum, item) => sum + item.total, 0);
-  const receivables = fakeInvoices.records
-    .filter(
-      (item) => item.status === 'SENT' || item.status === 'PARTIAL' || item.status === 'OVERDUE'
-    )
-    .reduce((sum, item) => sum + item.total, 0);
+export async function AreaGraph() {
+  const metrics = await getAgencyMetrics(prisma);
 
   const rows = [
     {
       label: 'Approved quotations',
-      value: formatPrice(approvedPipeline),
+      value: formatPrice(metrics.approvedPipeline),
       caption: 'Ready to convert or already feeding delivery.'
     },
     {
       label: 'Sent quotations',
-      value: formatPrice(sentPipeline),
+      value: formatPrice(metrics.sentPipeline),
       caption: 'Pipeline waiting on client decision.'
     },
     {
       label: 'Outstanding receivables',
-      value: formatPrice(receivables),
+      value: formatPrice(metrics.outstandingInvoices),
       caption: 'Invoice value still pending collection.'
     }
   ];

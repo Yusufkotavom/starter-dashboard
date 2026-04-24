@@ -1,11 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PageContainer from '@/components/layout/page-container';
-import { fakeClients } from '@/constants/mock-api-clients';
-import { fakeProjects } from '@/constants/mock-api-projects';
-import { fakeQuotations } from '@/constants/mock-api-quotations';
-import { fakeInvoices } from '@/constants/mock-api-invoices';
-import { fakePayments } from '@/constants/mock-api-payments';
-import { fakeExpenses } from '@/constants/mock-api-expenses';
+import { getAgencyMetrics, mapInvoiceRecord, mapProjectRecord } from '@/lib/agency';
+import { prisma } from '@/lib/prisma';
 import { formatPrice } from '@/lib/utils';
 
 function metric(title: string, value: string, description: string) {
@@ -24,26 +20,25 @@ export const metadata = {
   title: 'Dashboard: Reports'
 };
 
-export default function ReportsPage() {
-  const approvedPipeline = fakeQuotations.records
-    .filter((item) => item.status === 'APPROVED')
-    .reduce((sum, item) => sum + item.total, 0);
-  const activeProjects = fakeProjects.records.filter((item) => item.status === 'ACTIVE').length;
-  const outstandingInvoices = fakeInvoices.records
-    .filter(
-      (item) => item.status === 'SENT' || item.status === 'OVERDUE' || item.status === 'PARTIAL'
-    )
-    .reduce((sum, item) => sum + item.total, 0);
-  const cashIn = fakePayments.records.reduce((sum, item) => sum + item.amount, 0);
-  const costOut = fakeExpenses.records.reduce((sum, item) => sum + item.amount, 0);
-  const grossSpread = cashIn - costOut;
-
-  const recentInvoices = fakeInvoices.records
-    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 5);
-  const recentProjects = fakeProjects.records
-    .toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 5);
+export default async function ReportsPage() {
+  const metrics = await getAgencyMetrics(prisma);
+  const [clientsCount, recentInvoices, recentProjects] = await Promise.all([
+    prisma.client.count(),
+    prisma.invoice
+      .findMany({
+        include: { client: true, project: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      })
+      .then((items) => items.map(mapInvoiceRecord)),
+    prisma.project
+      .findMany({
+        include: { client: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 5
+      })
+      .then((items) => items.map(mapProjectRecord))
+  ]);
 
   return (
     <PageContainer
@@ -54,28 +49,32 @@ export default function ReportsPage() {
         <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
           {metric(
             'Clients',
-            String(fakeClients.records.length),
+            String(clientsCount),
             'Total CRM records tracked in the agency dashboard.'
           )}
           {metric(
             'Approved Pipeline',
-            formatPrice(approvedPipeline),
+            formatPrice(metrics.approvedPipeline),
             'Value of quotations already approved and ready for delivery.'
           )}
           {metric(
             'Active Projects',
-            String(activeProjects),
+            String(metrics.activeProjects),
             'Current delivery workload in progress.'
           )}
           {metric(
             'Outstanding Invoices',
-            formatPrice(outstandingInvoices),
+            formatPrice(metrics.outstandingInvoices),
             'Invoices still awaiting full collection.'
           )}
-          {metric('Cash In', formatPrice(cashIn), 'Recorded payments received from clients.')}
+          {metric(
+            'Cash In',
+            formatPrice(metrics.cashIn),
+            'Recorded payments received from clients.'
+          )}
           {metric(
             'Gross Spread',
-            formatPrice(grossSpread),
+            formatPrice(metrics.grossSpread),
             'Cash in minus recorded expenses across the demo dataset.'
           )}
         </div>

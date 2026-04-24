@@ -1,5 +1,3 @@
-import { fakeClients } from '@/constants/mock-api-clients';
-
 export const QUOTATION_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
   { value: 'SENT', label: 'Sent' },
@@ -23,8 +21,3 @@ export const QUOTATION_STATUS_LABELS: Record<string, string> = {
   REJECTED: 'Rejected',
   EXPIRED: 'Expired'
 };
-
-export const QUOTATION_CLIENT_OPTIONS = fakeClients.records.map((client) => ({
-  value: client.id,
-  label: client.company ? `${client.company} - ${client.name}` : client.name
-}));

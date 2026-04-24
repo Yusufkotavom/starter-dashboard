@@ -1,6 +1,3 @@
-import { fakeClients } from '@/constants/mock-api-clients';
-import { fakeProjects } from '@/constants/mock-api-projects';
-
 export const INVOICE_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
   { value: 'SENT', label: 'Sent' },
@@ -27,16 +24,3 @@ export const INVOICE_STATUS_LABELS: Record<string, string> = {
   OVERDUE: 'Overdue',
   CANCELLED: 'Cancelled'
 };
-
-export const INVOICE_CLIENT_OPTIONS = fakeClients.records.map((client) => ({
-  value: client.id,
-  label: client.company ? `${client.company} - ${client.name}` : client.name
-}));
-
-export const INVOICE_PROJECT_OPTIONS = [
-  { value: 0, label: 'No linked project' },
-  ...fakeProjects.records.map((project) => ({
-    value: project.id,
-    label: project.name
-  }))
-];

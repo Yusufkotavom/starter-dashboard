@@ -1,36 +1,42 @@
-import { fakeExpenses } from '@/constants/mock-api-expenses';
+import { apiClient } from '@/lib/api-client';
 import type { Expense, ExpenseFilters, ExpensesResponse, ExpenseMutationPayload } from './types';
 
+function createExpenseQueryString(filters: ExpenseFilters): string {
+  const searchParams = new URLSearchParams();
+
+  if (filters.page) searchParams.set('page', String(filters.page));
+  if (filters.limit) searchParams.set('limit', String(filters.limit));
+  if (filters.search) searchParams.set('search', filters.search);
+  if (filters.sort) searchParams.set('sort', filters.sort);
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
 export async function getExpenses(filters: ExpenseFilters): Promise<ExpensesResponse> {
-  return fakeExpenses.getExpenses(filters);
+  return apiClient<ExpensesResponse>(`/expenses${createExpenseQueryString(filters)}`);
 }
 
 export async function getExpenseById(id: number): Promise<Expense | null> {
-  return fakeExpenses.getExpenseById(id);
+  return apiClient<Expense>(`/expenses/${id}`);
 }
 
 export async function createExpense(data: ExpenseMutationPayload): Promise<Expense> {
-  return fakeExpenses.createExpense({
-    projectId: data.projectId ?? null,
-    category: data.category,
-    vendor: data.vendor ?? null,
-    amount: data.amount,
-    date: data.date,
-    notes: data.notes ?? null
+  return apiClient<Expense>('/expenses', {
+    method: 'POST',
+    body: JSON.stringify(data)
   });
 }
 
 export async function updateExpense(id: number, data: ExpenseMutationPayload): Promise<Expense> {
-  return fakeExpenses.updateExpense(id, {
-    projectId: data.projectId ?? null,
-    category: data.category,
-    vendor: data.vendor ?? null,
-    amount: data.amount,
-    date: data.date,
-    notes: data.notes ?? null
+  return apiClient<Expense>(`/expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
   });
 }
 
 export async function deleteExpense(id: number): Promise<void> {
-  return fakeExpenses.deleteExpense(id);
+  await apiClient(`/expenses/${id}`, {
+    method: 'DELETE'
+  });
 }

@@ -1,24 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { fakeProjects } from '@/constants/mock-api-projects';
+import { prisma } from '@/lib/prisma';
 
-export function BarGraph() {
+export async function BarGraph() {
+  const projects = await prisma.project.findMany({ select: { status: true } });
   const projectStatusCounts = [
-    {
-      label: 'Active',
-      count: fakeProjects.records.filter((item) => item.status === 'ACTIVE').length
-    },
-    {
-      label: 'Completed',
-      count: fakeProjects.records.filter((item) => item.status === 'COMPLETED').length
-    },
-    {
-      label: 'Paused',
-      count: fakeProjects.records.filter((item) => item.status === 'PAUSED').length
-    },
-    {
-      label: 'Cancelled',
-      count: fakeProjects.records.filter((item) => item.status === 'CANCELLED').length
-    }
+    { label: 'Active', count: projects.filter((item) => item.status === 'ACTIVE').length },
+    { label: 'Completed', count: projects.filter((item) => item.status === 'COMPLETED').length },
+    { label: 'Paused', count: projects.filter((item) => item.status === 'PAUSED').length },
+    { label: 'Cancelled', count: projects.filter((item) => item.status === 'CANCELLED').length }
   ];
   const maxCount = Math.max(...projectStatusCounts.map((item) => item.count), 1);
 

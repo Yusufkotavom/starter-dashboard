@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,9 @@ import {
 } from '@/components/ui/sheet';
 import { createInvoiceMutation, updateInvoiceMutation } from '../api/mutations';
 import type { Invoice } from '../api/types';
-import {
-  INVOICE_CLIENT_OPTIONS,
-  INVOICE_PROJECT_OPTIONS,
-  INVOICE_STATUS_OPTIONS
-} from '../constants';
+import { clientsQueryOptions } from '@/features/clients/api/queries';
+import { projectsQueryOptions } from '@/features/projects/api/queries';
+import { INVOICE_STATUS_OPTIONS } from '../constants';
 import { invoiceSchema, type InvoiceFormValues } from '../schemas/invoice';
 
 interface InvoiceFormSheetProps {
@@ -35,6 +33,20 @@ function toDateInputValue(value: string | null | undefined): string {
 
 export function InvoiceFormSheet({ invoice, open, onOpenChange }: InvoiceFormSheetProps) {
   const isEdit = !!invoice;
+  const { data: clientData } = useQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
+  const { data: projectData } = useQuery(projectsQueryOptions({ page: 1, limit: 1000 }));
+  const clientOptions =
+    clientData?.items.map((client) => ({
+      value: client.id,
+      label: client.company ? `${client.company} - ${client.name}` : client.name
+    })) ?? [];
+  const projectOptions = [
+    { value: 0, label: 'No linked project' },
+    ...(projectData?.items.map((project) => ({
+      value: project.id,
+      label: project.name
+    })) ?? [])
+  ];
 
   const createMutation = useMutation({
     ...createInvoiceMutation,
@@ -58,7 +70,7 @@ export function InvoiceFormSheet({ invoice, open, onOpenChange }: InvoiceFormShe
   const form = useAppForm({
     defaultValues: {
       number: invoice?.number ?? '',
-      clientId: invoice?.clientId ?? Number(INVOICE_CLIENT_OPTIONS[0]?.value ?? 0),
+      clientId: invoice?.clientId ?? Number(clientOptions[0]?.value ?? 0),
       projectId: invoice?.projectId ?? 0,
       status: invoice?.status ?? 'DRAFT',
       total: invoice?.total ?? 0,
@@ -102,12 +114,7 @@ export function InvoiceFormSheet({ invoice, open, onOpenChange }: InvoiceFormShe
             <form.Form id='invoice-form-sheet' className='space-y-4 py-4'>
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                 <FormTextField name='number' label='Invoice Number' required />
-                <FormSelectField
-                  name='clientId'
-                  label='Client'
-                  required
-                  options={INVOICE_CLIENT_OPTIONS}
-                />
+                <FormSelectField name='clientId' label='Client' required options={clientOptions} />
               </div>
 
               <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
@@ -115,7 +122,7 @@ export function InvoiceFormSheet({ invoice, open, onOpenChange }: InvoiceFormShe
                   name='projectId'
                   label='Project'
                   required
-                  options={INVOICE_PROJECT_OPTIONS}
+                  options={projectOptions}
                 />
                 <FormSelectField
                   name='status'
