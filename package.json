@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node scripts/postinstall.js 2>/dev/null; next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
