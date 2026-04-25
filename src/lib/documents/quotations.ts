@@ -162,6 +162,16 @@ export function renderQuotationDocumentHtml(
       quotation.issuerEmail,
       'Quotation generated from the agency dashboard'
     ],
+    signatureBlocks: [
+      {
+        title: 'Prepared By',
+        lines: [quotation.issuerName, quotation.issuerEmail]
+      },
+      {
+        title: 'Approval',
+        lines: [quotation.clientCompany || quotation.clientName, 'Name, title, and signature']
+      }
+    ],
     options,
     id: quotation.id
   });

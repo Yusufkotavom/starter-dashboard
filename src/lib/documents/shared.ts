@@ -146,6 +146,36 @@ export function createAttachmentContent(content: string | Uint8Array): string {
   return Buffer.from(content).toString('base64');
 }
 
+function getStatusTone(status: string) {
+  const normalized = status.trim().toUpperCase();
+
+  if (['PAID', 'APPROVED', 'ACTIVE'].includes(normalized)) {
+    return {
+      badgeClass: 'badge-success',
+      cardClass: 'status-success'
+    };
+  }
+
+  if (['OVERDUE', 'REJECTED', 'CANCELLED', 'VOID'].includes(normalized)) {
+    return {
+      badgeClass: 'badge-danger',
+      cardClass: 'status-danger'
+    };
+  }
+
+  if (['PARTIAL', 'SENT', 'PENDING'].includes(normalized)) {
+    return {
+      badgeClass: 'badge-warning',
+      cardClass: 'status-warning'
+    };
+  }
+
+  return {
+    badgeClass: '',
+    cardClass: ''
+  };
+}
+
 export function buildDocumentLayout(args: {
   kind: DocumentKind;
   title: string;
@@ -163,6 +193,10 @@ export function buildDocumentLayout(args: {
   paymentNote?: string | null;
   footerTitle?: string;
   footerLines?: string[];
+  signatureBlocks?: Array<{
+    title: string;
+    lines?: string[];
+  }>;
   options: DocumentRenderOptions;
   id: number;
 }): string {
@@ -170,6 +204,7 @@ export function buildDocumentLayout(args: {
   const documentUrl = buildDocumentUrl(origin, args.kind, args.id, accessToken);
   const downloadUrl = buildDocumentDownloadUrl(origin, args.kind, args.id, accessToken);
   const printUrl = buildDocumentPrintUrl(origin, args.kind, args.id, accessToken);
+  const statusTone = getStatusTone(args.status);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -305,6 +340,15 @@ export function buildDocumentLayout(args: {
         background: linear-gradient(180deg, #fff7ee 0%, #fffdf9 100%);
         padding: 20px 22px;
       }
+      .status-success {
+        background: linear-gradient(180deg, #eefaf1 0%, #fffdf9 100%);
+      }
+      .status-warning {
+        background: linear-gradient(180deg, #fff7e8 0%, #fffdf9 100%);
+      }
+      .status-danger {
+        background: linear-gradient(180deg, #fff0ec 0%, #fffdf9 100%);
+      }
       .status-top {
         display: flex;
         justify-content: space-between;
@@ -327,6 +371,21 @@ export function buildDocumentLayout(args: {
         letter-spacing: 0.08em;
         text-transform: uppercase;
         font-weight: 700;
+      }
+      .badge-success {
+        background: #edf9f0;
+        color: #166534;
+        border-color: #b8dfc2;
+      }
+      .badge-warning {
+        background: #fff3dc;
+        color: #9a6700;
+        border-color: #f0cf84;
+      }
+      .badge-danger {
+        background: #ffede8;
+        color: #b42318;
+        border-color: #f0b7aa;
       }
       .status-grid {
         display: grid;
@@ -412,10 +471,19 @@ export function buildDocumentLayout(args: {
       }
       .table-card {
         overflow: hidden;
+        page-break-inside: avoid;
+        break-inside: avoid;
       }
       .table-card table {
         margin: 0 -10px;
         width: calc(100% + 20px);
+      }
+      thead {
+        display: table-header-group;
+      }
+      tr, td, th {
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       .notes {
         white-space: normal;
@@ -452,6 +520,37 @@ export function buildDocumentLayout(args: {
         color: var(--text);
         font-weight: 700;
       }
+      .signatures {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .signature-card {
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 18px 20px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .signature-title {
+        margin: 0 0 36px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .signature-line {
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        color: var(--ink-soft);
+      }
+      .signature-meta {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
       @media print {
         @page {
           size: A4;
@@ -470,6 +569,9 @@ export function buildDocumentLayout(args: {
           box-shadow: none;
           border-radius: 0;
           border: 0;
+        }
+        .card, .signature-card {
+          box-shadow: none;
         }
       }
       @media (max-width: 720px) {
@@ -492,6 +594,9 @@ export function buildDocumentLayout(args: {
         }
         .footer {
           flex-direction: column;
+        }
+        .signatures {
+          grid-template-columns: 1fr;
         }
         .footer-block {
           max-width: none;
@@ -522,12 +627,12 @@ export function buildDocumentLayout(args: {
               </div>
             </section>
 
-            <aside class="status-card">
+            <aside class="status-card ${statusTone.cardClass}">
               <div class="status-top">
                 <div>
                   <div class="status-label">Status</div>
                 </div>
-                <div class="badge">${escapeHtml(args.status)}</div>
+                <div class="badge ${statusTone.badgeClass}">${escapeHtml(args.status)}</div>
               </div>
               <div class="status-grid">
                 ${args.metaRows
@@ -590,6 +695,34 @@ export function buildDocumentLayout(args: {
                 args.notes ? escapeMultilineHtml(args.notes) : 'No additional notes.'
               }</div>
             </section>
+
+            ${
+              args.signatureBlocks && args.signatureBlocks.length > 0
+                ? `
+              <section class="signatures">
+                ${args.signatureBlocks
+                  .map(
+                    (block) => `
+                  <section class="signature-card">
+                    <h2 class="signature-title">${escapeHtml(block.title)}</h2>
+                    <div class="signature-line"></div>
+                    ${
+                      block.lines && block.lines.length > 0
+                        ? `
+                      <div class="signature-meta">
+                        ${block.lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}
+                      </div>
+                    `
+                        : ''
+                    }
+                  </section>
+                `
+                  )
+                  .join('')}
+              </section>
+            `
+                : ''
+            }
           </section>
 
           <footer class="footer">

@@ -185,7 +185,13 @@ export function renderInvoiceDocumentHtml(
     notes: invoice.notes,
     paymentNote:
       invoice.balanceDue > 0
-        ? `Please settle the remaining balance of ${formatDocumentAmount(invoice.balanceDue)} before the due date.`
+        ? `Please settle the remaining balance of ${formatDocumentAmount(invoice.balanceDue)} before the due date.${
+            invoice.paymentBankName && invoice.paymentAccountNumber
+              ? ` Payment destination: ${invoice.paymentBankName} / ${invoice.paymentAccountNumber}${
+                  invoice.paymentAccountName ? ` (${invoice.paymentAccountName})` : ''
+                }.`
+              : ''
+          }`
         : 'This invoice has been fully settled.',
     footerTitle: 'Billing Contact',
     footerLines: [
@@ -194,6 +200,16 @@ export function renderInvoiceDocumentHtml(
       invoice.paymentBankName && invoice.paymentAccountNumber
         ? `${invoice.paymentBankName} • ${invoice.paymentAccountNumber}`
         : 'Managed from the agency dashboard'
+    ],
+    signatureBlocks: [
+      {
+        title: 'Issued By',
+        lines: [invoice.issuerName, invoice.issuerEmail]
+      },
+      {
+        title: 'Received By',
+        lines: [invoice.clientCompany || invoice.clientName, invoice.clientEmail]
+      }
     ],
     options,
     id: invoice.id
