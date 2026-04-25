@@ -186,6 +186,19 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard/overview"
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
 ```
 
+Optional but commonly used in this starter:
+
+```env
+# Mail
+MAIL_PROVIDER="emulator"
+MAIL_FROM_EMAIL="Agency Dashboard <onboarding@resend.dev>"
+MAIL_REPLY_TO=
+RESEND_API_KEY=
+
+# Blob uploads
+BLOB_READ_WRITE_TOKEN=
+```
+
 > **Note:** Prisma CLI reads `.env` (not `.env.local`) for `db:push` and `db:seed`.  
 > Copy your `DATABASE_URL` and `DIRECT_URL` to `.env` as well for CLI commands.
 
@@ -274,9 +287,51 @@ The repo now includes a communications module designed for WhatsApp-first operat
 Provider options in `Settings`:
 
 - `EMULATOR` — safe local testing, logs payloads
-- `BRIDGE` — connect your own WhatsApp Web / Baileys bridge service
+- `BRIDGE` — connect your own WhatsApp API service such as WAHA
 
-This keeps the dashboard modular: the shell does not depend on one WhatsApp provider, only on the communication abstraction.
+### WAHA setup
+
+The current recommended path is **WAHA Core**.
+
+Example runtime used during development on this host:
+
+- WAHA base URL: `http://127.0.0.1:3006`
+- API key: `local-waha-key`
+- session name: `default`
+
+Important:
+
+- **WAHA Core supports only one session named `default`**
+- if your dashboard runs on Vercel, use your **public WAHA tunnel URL**, not `127.0.0.1`
+
+In `Dashboard -> Settings -> Company Setup -> WhatsApp Channel`:
+
+1. set `WhatsApp Provider` to `BRIDGE`
+2. fill `WA API URL`
+3. fill `WA API Key`
+4. fill `Session Name` with `default`
+5. save settings
+6. click `Prepare Session`
+7. click `Open QR`
+8. scan the QR code
+9. click `Refresh Status`
+
+The repo now includes WAHA-specific helper routes:
+
+- `/api/settings/whatsapp/status`
+- `/api/settings/whatsapp/connect`
+- `/api/settings/whatsapp/qr`
+
+This lets operators complete setup directly from the dashboard instead of managing the session only from Swagger.
+
+### What the dashboard sends over WhatsApp
+
+- quotation delivery with document link
+- invoice delivery with document link
+- invoice delivery with payment link
+- manual outbound messages from the communications thread
+
+This keeps the dashboard modular: the shell does not depend on one WhatsApp provider, only on the communication abstraction. Right now the bridge implementation is tuned for WAHA.
 
 ---
 
@@ -351,6 +406,22 @@ docker run -d -p 3000:3000 \
 1. Connect repo to Vercel
 2. Add all `NEXT_PUBLIC_*`, Clerk, database, and storage env vars
 3. Deploy
+
+This repo uses a Vercel build command that keeps Prisma schema in sync during deploy:
+
+```json
+{
+  "buildCommand": "bun run build:vercel"
+}
+```
+
+And `build:vercel` runs:
+
+```bash
+prisma generate && prisma db push && next build
+```
+
+That is intentional for this starter because the schema is still managed with `db push` rather than committed migration files.
 
 ---
 
