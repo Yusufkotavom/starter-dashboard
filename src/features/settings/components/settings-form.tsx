@@ -172,6 +172,10 @@ export default function SettingsForm() {
                   session name <code>default</code>. If the dashboard is on Vercel, use your public
                   tunnel URL instead of <code>127.0.0.1</code>.
                 </p>
+                <p className='text-muted-foreground mt-2 text-xs'>
+                  Local WAHA example: URL <code>http://127.0.0.1:3006</code>, API key{' '}
+                  <code>local-waha-key</code>, session <code>default</code>.
+                </p>
               </div>
 
               <div className='grid gap-4 md:grid-cols-2'>
@@ -249,7 +253,11 @@ export default function SettingsForm() {
                     </Button>
                     {whatsappStatus.screenshotUrl ? (
                       <Button type='button' variant='outline' asChild>
-                        <a href={`${whatsappStatus.screenshotUrl}?t=${Date.now()}`} target='_blank'>
+                        <a
+                          href={`${whatsappStatus.screenshotUrl}?t=${Date.now()}`}
+                          target='_blank'
+                          rel='noreferrer'
+                        >
                           Open QR
                         </a>
                       </Button>
