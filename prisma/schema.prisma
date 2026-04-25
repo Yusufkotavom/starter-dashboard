@@ -24,6 +24,7 @@ model AppSettings {
   paymentQrisUrl       String?
   whatsappProvider     WhatsAppProvider @default(EMULATOR)
   whatsappBridgeUrl    String?
+  whatsappApiKey       String?
   whatsappSessionName  String?
   whatsappCountryCode  String   @default("62")
   createdAt            DateTime @default(now())

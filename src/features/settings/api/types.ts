@@ -13,8 +13,23 @@ export interface AppSettings {
   paymentQrisUrl: string | null;
   whatsappProvider: 'EMULATOR' | 'BRIDGE';
   whatsappBridgeUrl: string | null;
+  whatsappApiKey: string | null;
   whatsappSessionName: string | null;
   whatsappCountryCode: string;
 }
 
 export type AppSettingsMutationPayload = AppSettings;
+
+export interface WhatsAppSetupStatus {
+  provider: 'EMULATOR' | 'BRIDGE';
+  configured: boolean;
+  bridgeUrl: string | null;
+  sessionName: string | null;
+  apiKeyConfigured: boolean;
+  reachable: boolean;
+  sessionExists: boolean;
+  sessionStatus: string | null;
+  engine: string | null;
+  screenshotUrl: string | null;
+  message: string;
+}

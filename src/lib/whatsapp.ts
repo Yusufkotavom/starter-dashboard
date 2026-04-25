@@ -1,6 +1,6 @@
 import { getAppSettings } from '@/lib/app-settings';
 import { normalizePhoneNumber } from '@/lib/phone';
-import { CommunicationChannel, MessageStatus, Prisma, WhatsAppProvider } from '@/lib/prisma-client';
+import { MessageStatus, Prisma, WhatsAppProvider } from '@/lib/prisma-client';
 
 export interface WhatsAppSendInput {
   phone: string;
@@ -19,6 +19,20 @@ export interface WhatsAppSendResult {
   status: MessageStatus;
 }
 
+export interface WhatsAppSetupStatus {
+  provider: 'EMULATOR' | 'BRIDGE';
+  configured: boolean;
+  bridgeUrl: string | null;
+  sessionName: string | null;
+  apiKeyConfigured: boolean;
+  reachable: boolean;
+  sessionExists: boolean;
+  sessionStatus: string | null;
+  engine: string | null;
+  screenshotUrl: string | null;
+  message: string;
+}
+
 function normalizeOptional(value?: string | null): string | null {
   const normalized = value?.trim();
   return normalized ? normalized : null;
@@ -29,12 +43,37 @@ export async function getWhatsAppRuntimeConfig() {
   return {
     provider: settings.whatsappProvider,
     bridgeUrl: settings.whatsappBridgeUrl,
+    apiKey: settings.whatsappApiKey,
     sessionName: settings.whatsappSessionName,
     countryCode: settings.whatsappCountryCode
   };
 }
 
-async function sendViaBridge(input: WhatsAppSendInput): Promise<WhatsAppSendResult> {
+function getBridgeSessionName(sessionName?: string | null) {
+  return normalizeOptional(sessionName) || 'default';
+}
+
+function buildBridgeHeaders(apiKey?: string | null) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'starter-dashboard/1.0'
+  };
+
+  const normalizedApiKey = normalizeOptional(apiKey);
+  if (normalizedApiKey) {
+    headers['X-Api-Key'] = normalizedApiKey;
+  }
+
+  return headers;
+}
+
+function buildWhatsAppTextPayload(input: WhatsAppSendInput) {
+  return [input.body, normalizeOptional(input.documentUrl), normalizeOptional(input.attachmentUrl)]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+async function sendViaWahaBridge(input: WhatsAppSendInput): Promise<WhatsAppSendResult> {
   const config = await getWhatsAppRuntimeConfig();
   if (!config.bridgeUrl) {
     throw new Error('WHATSAPP_BRIDGE_URL_MISSING');
@@ -45,23 +84,13 @@ async function sendViaBridge(input: WhatsAppSendInput): Promise<WhatsAppSendResu
     throw new Error('WHATSAPP_PHONE_INVALID');
   }
 
-  const response = await fetch(new URL('/messages/send', config.bridgeUrl).toString(), {
+  const response = await fetch(new URL('/api/sendText', config.bridgeUrl).toString(), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'starter-dashboard/1.0'
-    },
+    headers: buildBridgeHeaders(config.apiKey),
     body: JSON.stringify({
-      sessionName: config.sessionName || 'agency-main',
-      channel: CommunicationChannel.WHATSAPP,
-      phone,
-      text: input.body,
-      attachmentUrl: normalizeOptional(input.attachmentUrl),
-      attachmentName: normalizeOptional(input.attachmentName),
-      documentUrl: normalizeOptional(input.documentUrl),
-      conversationId: input.conversationId ?? null,
-      externalThreadId: normalizeOptional(input.externalThreadId),
-      metadata: input.metadata ?? null
+      session: getBridgeSessionName(config.sessionName),
+      chatId: `${phone}@c.us`,
+      text: buildWhatsAppTextPayload(input)
     })
   });
 
@@ -70,9 +99,17 @@ async function sendViaBridge(input: WhatsAppSendInput): Promise<WhatsAppSendResu
     throw new Error(`WHATSAPP_BRIDGE_ERROR ${response.status} ${errorText}`);
   }
 
-  const payload = (await response.json()) as { id?: string; status?: string };
+  const payload = (await response.json()) as {
+    id?: string;
+    status?: string;
+    _data?: {
+      id?: {
+        _serialized?: string;
+      };
+    };
+  };
   return {
-    id: payload.id || `bridge-${Date.now()}`,
+    id: payload.id || payload._data?.id?._serialized || `bridge-${Date.now()}`,
     provider: WhatsAppProvider.BRIDGE,
     status:
       payload.status === MessageStatus.DELIVERED ? MessageStatus.DELIVERED : MessageStatus.SENT
@@ -111,10 +148,204 @@ async function sendViaEmulator(input: WhatsAppSendInput): Promise<WhatsAppSendRe
 export async function sendWhatsAppMessage(input: WhatsAppSendInput): Promise<WhatsAppSendResult> {
   const config = await getWhatsAppRuntimeConfig();
   if (config.provider === 'BRIDGE') {
-    return sendViaBridge(input);
+    return sendViaWahaBridge(input);
   }
 
   return sendViaEmulator(input);
+}
+
+export async function getWhatsAppSetupStatus(): Promise<WhatsAppSetupStatus> {
+  const config = await getWhatsAppRuntimeConfig();
+  const sessionName = getBridgeSessionName(config.sessionName);
+
+  if (config.provider !== 'BRIDGE') {
+    return {
+      provider: config.provider,
+      configured: false,
+      bridgeUrl: config.bridgeUrl,
+      sessionName,
+      apiKeyConfigured: Boolean(normalizeOptional(config.apiKey)),
+      reachable: false,
+      sessionExists: false,
+      sessionStatus: null,
+      engine: null,
+      screenshotUrl: null,
+      message: 'WhatsApp provider is still in emulator mode.'
+    };
+  }
+
+  if (!config.bridgeUrl) {
+    return {
+      provider: config.provider,
+      configured: false,
+      bridgeUrl: null,
+      sessionName,
+      apiKeyConfigured: Boolean(normalizeOptional(config.apiKey)),
+      reachable: false,
+      sessionExists: false,
+      sessionStatus: null,
+      engine: null,
+      screenshotUrl: null,
+      message: 'Set WAHA base URL first.'
+    };
+  }
+
+  try {
+    const response = await fetch(
+      new URL(`/api/sessions/${encodeURIComponent(sessionName)}`, config.bridgeUrl).toString(),
+      {
+        headers: buildBridgeHeaders(config.apiKey),
+        cache: 'no-store'
+      }
+    );
+
+    if (response.status === 404) {
+      return {
+        provider: config.provider,
+        configured: true,
+        bridgeUrl: config.bridgeUrl,
+        sessionName,
+        apiKeyConfigured: Boolean(normalizeOptional(config.apiKey)),
+        reachable: true,
+        sessionExists: false,
+        sessionStatus: null,
+        engine: null,
+        screenshotUrl: '/api/settings/whatsapp/qr',
+        message: `Session '${sessionName}' not found yet. Prepare it first.`
+      };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`WAHA_STATUS_ERROR ${response.status} ${errorText}`);
+    }
+
+    const payload = (await response.json()) as {
+      status?: string;
+      engine?: { engine?: string };
+    };
+
+    return {
+      provider: config.provider,
+      configured: true,
+      bridgeUrl: config.bridgeUrl,
+      sessionName,
+      apiKeyConfigured: Boolean(normalizeOptional(config.apiKey)),
+      reachable: true,
+      sessionExists: true,
+      sessionStatus: payload.status ?? null,
+      engine: payload.engine?.engine ?? null,
+      screenshotUrl: '/api/settings/whatsapp/qr',
+      message:
+        payload.status === 'WORKING'
+          ? 'WhatsApp is connected and ready.'
+          : `WhatsApp session is ${payload.status ?? 'unknown'}.`
+    };
+  } catch (error) {
+    return {
+      provider: config.provider,
+      configured: true,
+      bridgeUrl: config.bridgeUrl,
+      sessionName,
+      apiKeyConfigured: Boolean(normalizeOptional(config.apiKey)),
+      reachable: false,
+      sessionExists: false,
+      sessionStatus: null,
+      engine: null,
+      screenshotUrl: null,
+      message: error instanceof Error ? error.message : 'Failed to reach WAHA bridge.'
+    };
+  }
+}
+
+export async function ensureWhatsAppSession(): Promise<WhatsAppSetupStatus> {
+  const config = await getWhatsAppRuntimeConfig();
+  if (config.provider !== 'BRIDGE') {
+    throw new Error('WHATSAPP_PROVIDER_NOT_BRIDGE');
+  }
+
+  if (!config.bridgeUrl) {
+    throw new Error('WHATSAPP_BRIDGE_URL_MISSING');
+  }
+
+  const sessionName = getBridgeSessionName(config.sessionName);
+  const headers = buildBridgeHeaders(config.apiKey);
+
+  const sessionResponse = await fetch(
+    new URL(`/api/sessions/${encodeURIComponent(sessionName)}`, config.bridgeUrl).toString(),
+    {
+      headers,
+      cache: 'no-store'
+    }
+  );
+
+  if (sessionResponse.status === 404) {
+    const createResponse = await fetch(new URL('/api/sessions', config.bridgeUrl).toString(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: sessionName,
+        start: false
+      })
+    });
+
+    if (!createResponse.ok && createResponse.status !== 422) {
+      const errorText = await createResponse.text();
+      throw new Error(`WAHA_SESSION_CREATE_ERROR ${createResponse.status} ${errorText}`);
+    }
+  } else if (!sessionResponse.ok) {
+    const errorText = await sessionResponse.text();
+    throw new Error(`WAHA_SESSION_READ_ERROR ${sessionResponse.status} ${errorText}`);
+  }
+
+  const startResponse = await fetch(
+    new URL(`/api/sessions/${encodeURIComponent(sessionName)}/start`, config.bridgeUrl).toString(),
+    {
+      method: 'POST',
+      headers
+    }
+  );
+
+  if (!startResponse.ok && startResponse.status !== 409) {
+    const errorText = await startResponse.text();
+    throw new Error(`WAHA_SESSION_START_ERROR ${startResponse.status} ${errorText}`);
+  }
+
+  return getWhatsAppSetupStatus();
+}
+
+export async function getWhatsAppQrScreenshot() {
+  const config = await getWhatsAppRuntimeConfig();
+  if (config.provider !== 'BRIDGE') {
+    throw new Error('WHATSAPP_PROVIDER_NOT_BRIDGE');
+  }
+
+  if (!config.bridgeUrl) {
+    throw new Error('WHATSAPP_BRIDGE_URL_MISSING');
+  }
+
+  const sessionName = getBridgeSessionName(config.sessionName);
+  const response = await fetch(
+    new URL(
+      `/api/screenshot?session=${encodeURIComponent(sessionName)}`,
+      config.bridgeUrl
+    ).toString(),
+    {
+      headers: buildBridgeHeaders(config.apiKey),
+      cache: 'no-store'
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`WAHA_QR_ERROR ${response.status} ${errorText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return {
+    contentType: response.headers.get('content-type') || 'image/jpeg',
+    body: Buffer.from(arrayBuffer)
+  };
 }
 
 export function renderQuotationWhatsAppMessage(input: {

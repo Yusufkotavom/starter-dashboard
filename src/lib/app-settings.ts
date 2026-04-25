@@ -19,6 +19,7 @@ export interface AppSettingsSnapshot {
   paymentQrisUrl: string | null;
   whatsappProvider: 'EMULATOR' | 'BRIDGE';
   whatsappBridgeUrl: string | null;
+  whatsappApiKey: string | null;
   whatsappSessionName: string | null;
   whatsappCountryCode: string;
 }
@@ -38,6 +39,7 @@ export interface AppSettingsInput {
   paymentQrisUrl?: string | null;
   whatsappProvider: 'EMULATOR' | 'BRIDGE';
   whatsappBridgeUrl?: string | null;
+  whatsappApiKey?: string | null;
   whatsappSessionName?: string | null;
   whatsappCountryCode: string;
 }
@@ -63,6 +65,7 @@ export function getDefaultAppSettings(): AppSettingsSnapshot {
     paymentQrisUrl: null,
     whatsappProvider: 'EMULATOR',
     whatsappBridgeUrl: null,
+    whatsappApiKey: null,
     whatsappSessionName: null,
     whatsappCountryCode: '62'
   };
@@ -83,6 +86,7 @@ export function mapAppSettingsRecord(record: {
   paymentQrisUrl: string | null;
   whatsappProvider: 'EMULATOR' | 'BRIDGE';
   whatsappBridgeUrl: string | null;
+  whatsappApiKey: string | null;
   whatsappSessionName: string | null;
   whatsappCountryCode: string;
 }): AppSettingsSnapshot {
@@ -101,6 +105,7 @@ export function mapAppSettingsRecord(record: {
     paymentQrisUrl: record.paymentQrisUrl,
     whatsappProvider: record.whatsappProvider,
     whatsappBridgeUrl: record.whatsappBridgeUrl,
+    whatsappApiKey: record.whatsappApiKey,
     whatsappSessionName: record.whatsappSessionName,
     whatsappCountryCode: record.whatsappCountryCode
   };
@@ -147,6 +152,7 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
       paymentQrisUrl: normalizeOptional(input.paymentQrisUrl),
       whatsappProvider: input.whatsappProvider,
       whatsappBridgeUrl: normalizeOptional(input.whatsappBridgeUrl),
+      whatsappApiKey: normalizeOptional(input.whatsappApiKey),
       whatsappSessionName: normalizeOptional(input.whatsappSessionName),
       whatsappCountryCode: input.whatsappCountryCode.trim() || '62'
     },
@@ -165,6 +171,7 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
       paymentQrisUrl: normalizeOptional(input.paymentQrisUrl),
       whatsappProvider: input.whatsappProvider,
       whatsappBridgeUrl: normalizeOptional(input.whatsappBridgeUrl),
+      whatsappApiKey: normalizeOptional(input.whatsappApiKey),
       whatsappSessionName: normalizeOptional(input.whatsappSessionName),
       whatsappCountryCode: input.whatsappCountryCode.trim() || '62'
     }

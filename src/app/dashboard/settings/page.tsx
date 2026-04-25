@@ -2,7 +2,10 @@ import { Suspense } from 'react';
 import PageContainer from '@/components/layout/page-container';
 import { getQueryClient } from '@/lib/query-client';
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
-import { settingsQueryOptions } from '@/features/settings/api/queries';
+import {
+  settingsQueryOptions,
+  whatsappSetupStatusQueryOptions
+} from '@/features/settings/api/queries';
 import SettingsForm from '@/features/settings/components/settings-form';
 
 export const metadata = {
@@ -12,6 +15,7 @@ export const metadata = {
 export default function SettingsPage() {
   const queryClient = getQueryClient();
   void queryClient.prefetchQuery(settingsQueryOptions());
+  void queryClient.prefetchQuery(whatsappSetupStatusQueryOptions());
 
   return (
     <PageContainer

@@ -1,11 +1,14 @@
 'use client';
 
+import Image from 'next/image';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
-import { settingsQueryOptions } from '../api/queries';
-import { updateSettingsMutation } from '../api/mutations';
+import { cn } from '@/lib/utils';
+import { connectWhatsAppSessionMutation, updateSettingsMutation } from '../api/mutations';
+import { settingsQueryOptions, whatsappSetupStatusQueryOptions } from '../api/queries';
 
 const currencyOptions = [
   { value: 'IDR', label: 'IDR' },
@@ -33,6 +36,7 @@ type SettingsFormValues = {
   paymentQrisUrl: string;
   whatsappProvider: 'EMULATOR' | 'BRIDGE';
   whatsappBridgeUrl: string;
+  whatsappApiKey: string;
   whatsappSessionName: string;
   whatsappCountryCode: string;
 };
@@ -44,6 +48,9 @@ const whatsappProviderOptions = [
 
 export default function SettingsForm() {
   const { data } = useSuspenseQuery(settingsQueryOptions());
+  const { data: whatsappStatus, refetch: refetchWhatsAppStatus } = useSuspenseQuery(
+    whatsappSetupStatusQueryOptions()
+  );
   const mutation = useMutation({
     ...updateSettingsMutation,
     onSuccess: () => {
@@ -51,6 +58,15 @@ export default function SettingsForm() {
     },
     onError: () => {
       toast.error('Failed to save company setup');
+    }
+  });
+  const connectMutation = useMutation({
+    ...connectWhatsAppSessionMutation,
+    onSuccess: (result) => {
+      toast.success(result.message);
+    },
+    onError: () => {
+      toast.error('Failed to prepare WhatsApp session');
     }
   });
 
@@ -70,6 +86,7 @@ export default function SettingsForm() {
       paymentQrisUrl: data.paymentQrisUrl ?? '',
       whatsappProvider: data.whatsappProvider,
       whatsappBridgeUrl: data.whatsappBridgeUrl ?? '',
+      whatsappApiKey: data.whatsappApiKey ?? '',
       whatsappSessionName: data.whatsappSessionName ?? '',
       whatsappCountryCode: data.whatsappCountryCode
     } as SettingsFormValues,
@@ -81,6 +98,7 @@ export default function SettingsForm() {
         paymentAccountNumber: value.paymentAccountNumber || null,
         paymentQrisUrl: value.paymentQrisUrl || null,
         whatsappBridgeUrl: value.whatsappBridgeUrl || null,
+        whatsappApiKey: value.whatsappApiKey || null,
         whatsappSessionName: value.whatsappSessionName || null
       });
     }
@@ -150,8 +168,9 @@ export default function SettingsForm() {
               <div>
                 <h3 className='text-sm font-medium'>WhatsApp Channel</h3>
                 <p className='text-muted-foreground text-sm'>
-                  Configure how the dashboard talks to your WhatsApp Web bridge. Use emulator for
-                  local testing, then switch to bridge when your Baileys service is ready.
+                  Configure how the dashboard talks to WAHA. For WAHA Core on this server, use
+                  session name <code>default</code>. If the dashboard is on Vercel, use your public
+                  tunnel URL instead of <code>127.0.0.1</code>.
                 </p>
               </div>
 
@@ -170,14 +189,90 @@ export default function SettingsForm() {
                 />
                 <FormTextField
                   name='whatsappBridgeUrl'
-                  label='Bridge URL'
-                  placeholder='https://your-wa-bridge.example.com'
+                  label='WA API URL'
+                  placeholder='https://your-waha.example.com'
+                />
+                <FormTextField
+                  name='whatsappApiKey'
+                  label='WA API Key'
+                  placeholder='local-waha-key'
                 />
                 <FormTextField
                   name='whatsappSessionName'
                   label='Session Name'
-                  placeholder='agency-main'
+                  placeholder='default'
                 />
+              </div>
+
+              <div className='rounded-lg border p-4'>
+                <div className='flex flex-col gap-3 md:flex-row md:items-start md:justify-between'>
+                  <div className='space-y-1'>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <span className='text-sm font-medium'>WAHA Status</span>
+                      <span
+                        className={cn(
+                          'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                          whatsappStatus.reachable
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        )}
+                      >
+                        {whatsappStatus.sessionStatus ||
+                          (whatsappStatus.reachable ? 'REACHABLE' : 'NOT READY')}
+                      </span>
+                    </div>
+                    <p className='text-muted-foreground text-sm'>{whatsappStatus.message}</p>
+                    <div className='text-muted-foreground space-y-1 text-xs'>
+                      <p>Saved URL: {whatsappStatus.bridgeUrl || '-'}</p>
+                      <p>Saved session: {whatsappStatus.sessionName || '-'}</p>
+                      <p>API key: {whatsappStatus.apiKeyConfigured ? 'configured' : 'missing'}</p>
+                      <p>Engine: {whatsappStatus.engine || '-'}</p>
+                    </div>
+                  </div>
+
+                  <div className='flex flex-wrap gap-2'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      onClick={() => void refetchWhatsAppStatus()}
+                      isLoading={false}
+                    >
+                      Refresh Status
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      onClick={() => void connectMutation.mutateAsync()}
+                      isLoading={connectMutation.isPending}
+                    >
+                      Prepare Session
+                    </Button>
+                    {whatsappStatus.screenshotUrl ? (
+                      <Button type='button' variant='outline' asChild>
+                        <a href={`${whatsappStatus.screenshotUrl}?t=${Date.now()}`} target='_blank'>
+                          Open QR
+                        </a>
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {whatsappStatus.screenshotUrl ? (
+                  <div className='mt-4 space-y-2'>
+                    <p className='text-muted-foreground text-xs'>
+                      QR preview. Refresh status after scanning if it still shows QR mode.
+                    </p>
+                    <Image
+                      key={whatsappStatus.sessionStatus || 'whatsapp-qr'}
+                      src={`${whatsappStatus.screenshotUrl}?t=${Date.now()}`}
+                      alt='WhatsApp QR'
+                      width={320}
+                      height={320}
+                      unoptimized
+                      className='max-h-80 rounded-md border object-contain'
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
 
