@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { getDefaultAppSettings } from '@/lib/app-settings';
 import { escapeHtml } from './shared';
 import {
   buildDocumentLayout,
@@ -34,6 +35,11 @@ export interface InvoiceDocumentData {
   balanceDue: number;
   notes: string | null;
   payments: InvoiceDocumentPayment[];
+  issuerName: string;
+  issuerEmail: string;
+  paymentBankName: string | null;
+  paymentAccountName: string | null;
+  paymentAccountNumber: string | null;
 }
 
 export async function getInvoiceDocumentData(
@@ -58,6 +64,11 @@ export async function getInvoiceDocumentData(
     return null;
   }
 
+  const appSettings =
+    (await db.appSettings.findUnique({
+      where: { id: 1 }
+    })) || getDefaultAppSettings();
+
   const paidAmount = invoice.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const total = Number(invoice.total);
 
@@ -80,6 +91,12 @@ export async function getInvoiceDocumentData(
     paidAmount,
     balanceDue: Math.max(total - paidAmount, 0),
     notes: invoice.notes,
+    issuerName: appSettings.companyName,
+    issuerEmail: appSettings.companyEmail,
+    paymentBankName: 'paymentBankName' in appSettings ? appSettings.paymentBankName : null,
+    paymentAccountName: 'paymentAccountName' in appSettings ? appSettings.paymentAccountName : null,
+    paymentAccountNumber:
+      'paymentAccountNumber' in appSettings ? appSettings.paymentAccountNumber : null,
     payments: invoice.payments
       .toSorted((a, b) => a.paidAt.getTime() - b.paidAt.getTime())
       .map((payment) => ({
@@ -126,6 +143,14 @@ export function renderInvoiceDocumentHtml(
   invoice: InvoiceDocumentData,
   options: DocumentRenderOptions
 ): string {
+  const issuerLines = [
+    invoice.issuerName,
+    invoice.issuerEmail,
+    invoice.paymentBankName ? `Bank: ${invoice.paymentBankName}` : null,
+    invoice.paymentAccountName ? `A/N: ${invoice.paymentAccountName}` : null,
+    invoice.paymentAccountNumber ? `No. Rek: ${invoice.paymentAccountNumber}` : null
+  ].filter(Boolean) as string[];
+
   const partyLines = [
     invoice.clientCompany || invoice.clientName,
     invoice.clientEmail,
@@ -138,6 +163,8 @@ export function renderInvoiceDocumentHtml(
     title: 'Invoice',
     number: invoice.number,
     status: invoice.status,
+    issuerTitle: 'Issued By',
+    issuerLines,
     metaRows: [
       { label: 'Issued Date', value: formatDocumentDate(invoice.createdAt) },
       { label: 'Due Date', value: formatDocumentDate(invoice.dueDate) },
@@ -156,6 +183,18 @@ export function renderInvoiceDocumentHtml(
     lineItemsTitle: 'Payment Activity',
     lineItemsTable: renderPaymentsTable(invoice.payments),
     notes: invoice.notes,
+    paymentNote:
+      invoice.balanceDue > 0
+        ? `Please settle the remaining balance of ${formatDocumentAmount(invoice.balanceDue)} before the due date.`
+        : 'This invoice has been fully settled.',
+    footerTitle: 'Billing Contact',
+    footerLines: [
+      invoice.issuerName,
+      invoice.issuerEmail,
+      invoice.paymentBankName && invoice.paymentAccountNumber
+        ? `${invoice.paymentBankName} • ${invoice.paymentAccountNumber}`
+        : 'Managed from the agency dashboard'
+    ],
     options,
     id: invoice.id
   });

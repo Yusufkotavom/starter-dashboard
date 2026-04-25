@@ -151,6 +151,8 @@ export function buildDocumentLayout(args: {
   title: string;
   number: string;
   status: string;
+  issuerTitle: string;
+  issuerLines: string[];
   metaRows: Array<{ label: string; value: string }>;
   partyTitle: string;
   partyLines: string[];
@@ -158,6 +160,9 @@ export function buildDocumentLayout(args: {
   lineItemsTitle?: string;
   lineItemsTable?: string;
   notes?: string | null;
+  paymentNote?: string | null;
+  footerTitle?: string;
+  footerLines?: string[];
   options: DocumentRenderOptions;
   id: number;
 }): string {
@@ -175,35 +180,39 @@ export function buildDocumentLayout(args: {
     <style>
       :root {
         color-scheme: light;
-        --bg: #f6f7f9;
+        --bg: #ebe7df;
         --card: #ffffff;
-        --text: #111827;
-        --muted: #6b7280;
-        --line: #e5e7eb;
-        --accent: #111827;
+        --paper: #fffdf8;
+        --text: #171717;
+        --muted: #68635b;
+        --line: #ddd6c7;
+        --soft-line: #efe8da;
+        --accent: #a14f2a;
+        --accent-soft: #f4e3d7;
+        --ink-soft: #3f3a34;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       .shell {
-        max-width: 960px;
+        max-width: 1120px;
         margin: 0 auto;
-        padding: 32px 20px 72px;
+        padding: 32px 20px 60px;
       }
       .toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
       }
       .toolbar a, .toolbar button {
         appearance: none;
         border: 1px solid var(--line);
-        background: var(--card);
+        background: rgba(255,255,255,0.9);
         color: var(--text);
         border-radius: 999px;
         padding: 10px 16px;
@@ -212,71 +221,158 @@ export function buildDocumentLayout(args: {
         cursor: pointer;
       }
       .sheet {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 24px;
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background: var(--paper);
+        border: 1px solid rgba(161, 79, 42, 0.14);
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 26px 80px rgba(38, 28, 18, 0.12);
+      }
+      .page {
+        min-height: 297mm;
+        padding: 18mm 16mm 16mm;
+        display: flex;
+        flex-direction: column;
       }
       .hero {
+        display: grid;
+        grid-template-columns: 1.25fr 0.95fr;
+        gap: 18px;
+        align-items: stretch;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand-card {
         display: flex;
+        flex-direction: column;
         justify-content: space-between;
         gap: 24px;
-        padding: 32px;
-        border-bottom: 1px solid var(--line);
+        padding: 4px 0;
+      }
+      .brand-top {
+        display: grid;
+        gap: 8px;
+      }
+      .document-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--accent);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .document-kicker::before {
+        content: "";
+        display: inline-block;
+        width: 28px;
+        height: 1px;
+        background: currentColor;
       }
       .hero h1 {
         margin: 0;
-        font-size: 34px;
-        line-height: 1;
+        font-size: 42px;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
       }
-      .hero .eyebrow {
-        display: inline-flex;
-        margin-bottom: 10px;
-        color: var(--muted);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        font-size: 12px;
-      }
-      .hero .number {
-        font-size: 16px;
+      .number {
+        font-size: 14px;
         color: var(--muted);
         margin-top: 10px;
+        letter-spacing: 0.04em;
+      }
+      .issuer {
+        display: grid;
+        gap: 6px;
+        color: var(--ink-soft);
+        max-width: 72%;
+      }
+      .issuer-title {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .status-card {
+        display: grid;
+        gap: 18px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff7ee 0%, #fffdf9 100%);
+        padding: 20px 22px;
+      }
+      .status-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .status-label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
       }
       .badge {
-        align-self: flex-start;
         border: 1px solid var(--line);
         border-radius: 999px;
+        background: var(--card);
         padding: 8px 12px;
         font-size: 12px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+        font-weight: 700;
+      }
+      .status-grid {
+        display: grid;
+        gap: 10px;
+      }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--soft-line);
+        padding-bottom: 10px;
+      }
+      .status-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
       }
       .content {
-        padding: 32px;
         display: grid;
-        gap: 24px;
+        gap: 18px;
+        padding-top: 18px;
+        flex: 1;
       }
       .grid {
         display: grid;
-        gap: 24px;
+        gap: 18px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .card {
         border: 1px solid var(--line);
         border-radius: 18px;
-        padding: 20px;
+        background: var(--card);
+        padding: 18px 20px;
       }
       .card h2 {
         margin: 0 0 14px;
-        font-size: 15px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
       }
       .meta-row, .summary-row {
         display: flex;
         justify-content: space-between;
         gap: 16px;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--line);
+        padding: 11px 0;
+        border-bottom: 1px solid var(--soft-line);
       }
       .meta-row:last-child, .summary-row:last-child {
         border-bottom: 0;
@@ -290,7 +386,8 @@ export function buildDocumentLayout(args: {
       }
       .party-lines {
         display: grid;
-        gap: 6px;
+        gap: 7px;
+        line-height: 1.55;
       }
       table {
         width: 100%;
@@ -298,8 +395,8 @@ export function buildDocumentLayout(args: {
       }
       th, td {
         text-align: left;
-        padding: 12px 10px;
-        border-bottom: 1px solid var(--line);
+        padding: 13px 10px;
+        border-bottom: 1px solid var(--soft-line);
         vertical-align: top;
       }
       th {
@@ -307,28 +404,98 @@ export function buildDocumentLayout(args: {
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        font-weight: 700;
+        background: #fcf7f0;
       }
       td.amount, th.amount {
         text-align: right;
+      }
+      .table-card {
+        overflow: hidden;
+      }
+      .table-card table {
+        margin: 0 -10px;
+        width: calc(100% + 20px);
       }
       .notes {
         white-space: normal;
         line-height: 1.7;
       }
+      .summary-card .summary-row:last-child strong {
+        color: var(--accent);
+        font-size: 15px;
+      }
+      .payment-note {
+        margin-top: 14px;
+        border-radius: 14px;
+        background: var(--accent-soft);
+        color: #6d371f;
+        padding: 14px 16px;
+        line-height: 1.7;
+      }
       .footer {
-        padding: 0 32px 32px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12px;
+      }
+      .footer-block {
+        display: grid;
+        gap: 4px;
+        max-width: 48%;
+      }
+      .footer-title {
+        color: var(--text);
+        font-weight: 700;
       }
       @media print {
-        body { background: #fff; }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        html, body {
+          width: 210mm;
+          height: 297mm;
+          background: #fff;
+        }
         .shell { max-width: none; padding: 0; }
         .toolbar { display: none; }
-        .sheet { box-shadow: none; border-radius: 0; border: 0; }
+        .sheet {
+          width: 210mm;
+          min-height: 297mm;
+          box-shadow: none;
+          border-radius: 0;
+          border: 0;
+        }
       }
       @media (max-width: 720px) {
-        .hero, .grid { grid-template-columns: 1fr; display: grid; }
-        .content, .hero, .footer { padding: 20px; }
+        .shell {
+          padding: 16px 10px 40px;
+        }
+        .sheet {
+          width: 100%;
+          min-height: auto;
+        }
+        .page {
+          min-height: auto;
+          padding: 20px 18px;
+        }
+        .hero, .grid {
+          grid-template-columns: 1fr;
+        }
+        .issuer {
+          max-width: 100%;
+        }
+        .footer {
+          flex-direction: column;
+        }
+        .footer-block {
+          max-width: none;
+        }
       }
     </style>
   </head>
@@ -341,75 +508,109 @@ export function buildDocumentLayout(args: {
         <a href="${escapeHtml(printUrl)}" target="_blank" rel="noreferrer">Open Print View</a>
       </div>
       <article class="sheet">
-        <header class="hero">
-          <div>
-            <span class="eyebrow">${escapeHtml(args.title)}</span>
-            <h1>${escapeHtml(args.number)}</h1>
-            <div class="number">${escapeHtml(args.title)} document</div>
-          </div>
-          <div class="badge">${escapeHtml(args.status)}</div>
-        </header>
-        <section class="content">
-          <div class="grid">
-            <section class="card">
-              <h2>Document Details</h2>
-              ${args.metaRows
-                .map(
-                  (row) => `
-                <div class="meta-row">
-                  <span class="label">${escapeHtml(row.label)}</span>
-                  <strong>${escapeHtml(row.value)}</strong>
-                </div>
-              `
-                )
-                .join('')}
-            </section>
-            <section class="card">
-              <h2>${escapeHtml(args.partyTitle)}</h2>
-              <div class="party-lines">
-                ${args.partyLines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}
+        <div class="page">
+          <header class="hero">
+            <section class="brand-card">
+              <div class="brand-top">
+                <span class="document-kicker">${escapeHtml(args.title)}</span>
+                <h1>${escapeHtml(args.number)}</h1>
+                <div class="number">${escapeHtml(args.title)} document</div>
+              </div>
+              <div class="issuer">
+                <div class="issuer-title">${escapeHtml(args.issuerTitle)}</div>
+                ${args.issuerLines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}
               </div>
             </section>
-          </div>
-          ${
-            args.lineItemsTable
-              ? `
-            <section class="card">
-              <h2>${escapeHtml(args.lineItemsTitle || 'Items')}</h2>
-              ${args.lineItemsTable}
-            </section>
-          `
-              : ''
-          }
-          <div class="grid">
-            <section class="card">
-              <h2>Summary</h2>
-              ${args.summaryRows
-                .map(
-                  (row) => `
-                <div class="summary-row">
-                  <span class="label">${escapeHtml(row.label)}</span>
-                  <strong>${escapeHtml(row.value)}</strong>
+
+            <aside class="status-card">
+              <div class="status-top">
+                <div>
+                  <div class="status-label">Status</div>
                 </div>
-              `
-                )
-                .join('')}
-            </section>
-            ${
-              args.notes
-                ? `
+                <div class="badge">${escapeHtml(args.status)}</div>
+              </div>
+              <div class="status-grid">
+                ${args.metaRows
+                  .map(
+                    (row) => `
+                  <div class="status-row">
+                    <span class="label">${escapeHtml(row.label)}</span>
+                    <strong>${escapeHtml(row.value)}</strong>
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
+            </aside>
+          </header>
+
+          <section class="content">
+            <div class="grid">
               <section class="card">
-                <h2>Notes</h2>
-                <div class="notes">${escapeMultilineHtml(args.notes)}</div>
+                <h2>${escapeHtml(args.partyTitle)}</h2>
+                <div class="party-lines">
+                  ${args.partyLines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}
+                </div>
+              </section>
+
+              <section class="card summary-card">
+                <h2>Summary</h2>
+                ${args.summaryRows
+                  .map(
+                    (row) => `
+                  <div class="summary-row">
+                    <span class="label">${escapeHtml(row.label)}</span>
+                    <strong>${escapeHtml(row.value)}</strong>
+                  </div>
+                `
+                  )
+                  .join('')}
+                ${
+                  args.paymentNote
+                    ? `<div class="payment-note">${escapeMultilineHtml(args.paymentNote)}</div>`
+                    : ''
+                }
+              </section>
+            </div>
+
+            ${
+              args.lineItemsTable
+                ? `
+              <section class="card table-card">
+                <h2>${escapeHtml(args.lineItemsTitle || 'Items')}</h2>
+                ${args.lineItemsTable}
               </section>
             `
-                : '<section class="card"><h2>Notes</h2><div class="notes">No additional notes.</div></section>'
+                : ''
             }
-          </div>
-        </section>
-        <footer class="footer">
-          Generated from ${escapeHtml(documentUrl)}
-        </footer>
+
+            <section class="card">
+              <h2>Notes</h2>
+              <div class="notes">${
+                args.notes ? escapeMultilineHtml(args.notes) : 'No additional notes.'
+              }</div>
+            </section>
+          </section>
+
+          <footer class="footer">
+            <div class="footer-block">
+              <div class="footer-title">${escapeHtml(args.footerTitle || 'Document Reference')}</div>
+              ${(
+                args.footerLines || [
+                  `Generated from ${documentUrl}`,
+                  `Download copy: ${downloadUrl}`
+                ]
+              )
+                .map((line) => `<div>${escapeHtml(line)}</div>`)
+                .join('')}
+            </div>
+            <div class="footer-block">
+              <div class="footer-title">Generated via Dashboard</div>
+              <div>This document is optimized for full A4 export and print.</div>
+              <div>Please review the latest live version before external sharing.</div>
+            </div>
+          </footer>
+        </div>
       </article>
     </div>
     ${autoPrint ? `<script>window.addEventListener('load', () => window.print());</script>` : ''}

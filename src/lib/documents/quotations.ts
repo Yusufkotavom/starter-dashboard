@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { getDefaultAppSettings } from '@/lib/app-settings';
 import { escapeHtml } from './shared';
 import {
   buildDocumentLayout,
@@ -31,6 +32,8 @@ export interface QuotationDocumentData {
   total: number;
   notes: string | null;
   items: QuotationDocumentItem[];
+  issuerName: string;
+  issuerEmail: string;
 }
 
 export async function getQuotationDocumentData(
@@ -53,6 +56,11 @@ export async function getQuotationDocumentData(
     return null;
   }
 
+  const appSettings =
+    (await db.appSettings.findUnique({
+      where: { id: 1 }
+    })) || getDefaultAppSettings();
+
   return {
     id: quotation.id,
     number: quotation.number,
@@ -69,6 +77,8 @@ export async function getQuotationDocumentData(
     discount: Number(quotation.discount),
     total: Number(quotation.total),
     notes: quotation.notes,
+    issuerName: appSettings.companyName,
+    issuerEmail: appSettings.companyEmail,
     items: quotation.items.map((item) => ({
       description: item.product?.name ?? item.description,
       qty: Number(item.qty),
@@ -113,6 +123,7 @@ export function renderQuotationDocumentHtml(
   quotation: QuotationDocumentData,
   options: DocumentRenderOptions
 ): string {
+  const issuerLines = [quotation.issuerName, quotation.issuerEmail];
   const partyLines = [
     quotation.clientCompany || quotation.clientName,
     quotation.clientEmail,
@@ -125,6 +136,8 @@ export function renderQuotationDocumentHtml(
     title: 'Quotation',
     number: quotation.number,
     status: quotation.status,
+    issuerTitle: 'Prepared By',
+    issuerLines,
     metaRows: [
       { label: 'Issued Date', value: formatDocumentDate(quotation.createdAt) },
       { label: 'Valid Until', value: formatDocumentDate(quotation.validUntil) },
@@ -142,6 +155,13 @@ export function renderQuotationDocumentHtml(
     lineItemsTitle: 'Quoted Scope',
     lineItemsTable: renderItemsTable(quotation.items),
     notes: quotation.notes,
+    paymentNote: `This quotation remains valid until ${formatDocumentDate(quotation.validUntil)}. Any scope or pricing revision should be reconfirmed before approval.`,
+    footerTitle: 'Commercial Contact',
+    footerLines: [
+      quotation.issuerName,
+      quotation.issuerEmail,
+      'Quotation generated from the agency dashboard'
+    ],
     options,
     id: quotation.id
   });
