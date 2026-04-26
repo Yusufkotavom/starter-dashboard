@@ -1,6 +1,12 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { revalidateTag, unstable_cache } from 'next/cache';
-import { InvoiceStatus, Prisma, ProjectStatus, SubscriptionStatus } from '@prisma/client';
+import {
+  ClientStatus,
+  InvoiceStatus,
+  Prisma,
+  ProjectStatus,
+  SubscriptionStatus
+} from '@prisma/client';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
@@ -329,24 +335,7 @@ export type PortalProjectDocument = Prisma.ProjectGetPayload<{
 }>;
 
 export async function getPortalOverviewData(): Promise<PortalOverviewData | null> {
-  const identity = await getPortalIdentity();
-  const client = await prisma.client.findUnique({
-    where: { email: identity.email },
-    select: portalClientSummarySelect
-  });
-
-  if (!client) {
-    return {
-      client: null,
-      quotationsCount: 0,
-      activeProjectsCount: 0,
-      outstandingInvoicesCount: 0,
-      outstandingBalance: 0,
-      activeSubscriptionsCount: 0,
-      recentPaymentsCount: 0,
-      digitalAccessCount: 0
-    };
-  }
+  const { client } = await getPortalClientOrThrow();
 
   const outstandingStatuses: InvoiceStatus[] = [
     InvoiceStatus.SENT,
@@ -760,20 +749,61 @@ async function getPortalIdentity(): Promise<{
   return { user, email };
 }
 
-export async function getPortalClientOrThrow() {
-  const identity = await getPortalIdentity();
-  const client = await prisma.client.findUnique({
-    where: { email: identity.email }
-  });
+function buildPortalLeadName(
+  user: NonNullable<Awaited<ReturnType<typeof currentUser>>>,
+  email: string
+): string {
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 
-  if (!client) {
-    redirect('/portal');
+  if (fullName) {
+    return fullName;
   }
+
+  const username = user.username?.trim();
+  if (username) {
+    return username;
+  }
+
+  const emailPrefix = email
+    .split('@')[0]
+    ?.replace(/[._-]+/g, ' ')
+    .trim();
+  if (emailPrefix) {
+    return emailPrefix
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  return 'Portal Client';
+}
+
+async function getOrCreatePortalClient() {
+  const identity = await getPortalIdentity();
+  const leadName = buildPortalLeadName(identity.user, identity.email);
+
+  const client = await prisma.client.upsert({
+    where: { email: identity.email },
+    update: {
+      name: leadName
+    },
+    create: {
+      name: leadName,
+      email: identity.email,
+      status: ClientStatus.LEAD,
+      notes: 'Created automatically from Clerk portal sign-up.'
+    }
+  });
 
   return {
     ...identity,
     client
   };
+}
+
+export async function getPortalClientOrThrow() {
+  return getOrCreatePortalClient();
 }
 
 export async function getPortalQuotationDocument(
