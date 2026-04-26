@@ -28,6 +28,21 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         shortcut: ['d', 'd'],
         items: []
+      },
+      {
+        title: 'Workspaces',
+        url: '/dashboard/workspaces',
+        icon: 'workspace',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Workspace Team',
+        url: '/dashboard/workspaces/team',
+        icon: 'teams',
+        isActive: false,
+        items: [],
+        access: { requireOrg: true }
       }
     ]
   },
@@ -181,12 +196,29 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Profile',
+        url: '/dashboard/profile',
+        icon: 'profile',
+        shortcut: ['m', 'm'],
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Notifications',
         url: '/dashboard/notifications',
         icon: 'notification',
         shortcut: ['n', 'n'],
         isActive: false,
         items: []
+      },
+      {
+        title: 'Billing',
+        url: '/dashboard/billing',
+        icon: 'billing',
+        shortcut: ['b', 'b'],
+        isActive: false,
+        items: [],
+        access: { requireOrg: true }
       },
       {
         title: 'Chat',

@@ -23,11 +23,11 @@ This file is the primary reference for AI coding agents working on this project.
 
 Every domain module is **optional and self-contained**. The core shell never depends on domain modules. Modules can exist in one of three states:
 
-| State      | Nav visible | Code in repo |
-| ---------- | :---------: | :----------: |
-| `enabled`  |     ✅      |      ✅      |
-| `disabled` |     ❌      |      ✅      |
-| `removed`  |     ❌      |      ❌      |
+| State | Nav visible | Code in repo |
+|-------|:-----------:|:------------:|
+| `enabled` | ✅ | ✅ |
+| `disabled` | ❌ | ✅ |
+| `removed` | ❌ | ❌ |
 
 Use `scripts/cleanup.js` to manage module states.
 
@@ -271,17 +271,13 @@ Current models: `Category`, `Product` (with `ProductType` enum: `PRODUCT | SERVI
 
 ```ts
 // src/features/<name>/api/service.ts
-'use server'; // ← add for Server Actions pattern
+'use server';                         // ← add for Server Actions pattern
 import { prisma } from '@/lib/prisma'; // re-export PrismaClient singleton
 
 export async function getProducts(filters: ProductFilters) {
   const [items, total_items] = await Promise.all([
-    prisma.product.findMany({
-      /* ... */
-    }),
-    prisma.product.count({
-      /* ... */
-    })
+    prisma.product.findMany({ /* ... */ }),
+    prisma.product.count({ /* ... */ })
   ]);
   return { items, total_items };
 }
@@ -322,15 +318,15 @@ node scripts/cleanup.js --list
 
 ### Available modules
 
-| Module          | Removes                                              |
-| --------------- | ---------------------------------------------------- |
-| `clerk`         | auth routes, profile, workspaces, billing, exclusive |
-| `kanban`        | kanban board + dnd-kit deps                          |
-| `chat`          | messaging UI                                         |
-| `notifications` | notification center                                  |
-| `examples`      | forms demo, react-query demo, elements               |
-| `themes`        | extra themes (keep one)                              |
-| `sentry`        | error tracking                                       |
+| Module | Removes |
+|--------|---------|
+| `clerk` | auth routes, profile, workspaces, billing, exclusive |
+| `kanban` | kanban board + dnd-kit deps |
+| `chat` | messaging UI |
+| `notifications` | notification center |
+| `examples` | forms demo, react-query demo, elements |
+| `themes` | extra themes (keep one) |
+| `sentry` | error tracking |
 
 ### When a module is disabled
 
@@ -387,29 +383,19 @@ import { faker } from '@faker-js/faker';
 import { matchSorter } from 'match-sorter';
 import { delay } from './mock-api';
 
-export type Order = { id: number; customer: string; status: string; total: number /* ... */ };
+export type Order = { id: number; customer: string; status: string; total: number; /* ... */ };
 
 export const fakeOrders = {
   records: [] as Order[],
-  initialize() {
-    /* generate with faker */
-  },
+  initialize() { /* generate with faker */ },
   async getOrders({ page, limit, search, sort }) {
     await delay(800);
     /* filter + paginate → return { items, total_items } */
   },
-  async getOrderById(id: number) {
-    /* ... */
-  },
-  async createOrder(data) {
-    /* ... */
-  },
-  async updateOrder(id, data) {
-    /* ... */
-  },
-  async deleteOrder(id) {
-    /* ... */
-  }
+  async getOrderById(id: number) { /* ... */ },
+  async createOrder(data) { /* ... */ },
+  async updateOrder(id, data) { /* ... */ },
+  async deleteOrder(id) { /* ... */ }
 };
 fakeOrders.initialize();
 ```
@@ -436,18 +422,10 @@ import type { OrderFilters, OrdersResponse, OrderMutationPayload } from './types
 export async function getOrders(filters: OrderFilters): Promise<OrdersResponse> {
   return fakeOrders.getOrders(filters);
 }
-export async function getOrderById(id: number) {
-  return fakeOrders.getOrderById(id);
-}
-export async function createOrder(data: OrderMutationPayload) {
-  return fakeOrders.createOrder(data);
-}
-export async function updateOrder(id: number, data: OrderMutationPayload) {
-  return fakeOrders.updateOrder(id, data);
-}
-export async function deleteOrder(id: number) {
-  return fakeOrders.deleteOrder(id);
-}
+export async function getOrderById(id: number) { return fakeOrders.getOrderById(id); }
+export async function createOrder(data: OrderMutationPayload) { return fakeOrders.createOrder(data); }
+export async function updateOrder(id: number, data: OrderMutationPayload) { return fakeOrders.updateOrder(id, data); }
+export async function deleteOrder(id: number) { return fakeOrders.deleteOrder(id); }
 ```
 
 **`queries.ts`** — React Query options + key factory:
@@ -485,8 +463,7 @@ export const createOrderMutation = mutationOptions({
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: orderKeys.all })
 });
 export const updateOrderMutation = mutationOptions({
-  mutationFn: ({ id, values }: { id: number; values: OrderMutationPayload }) =>
-    updateOrder(id, values),
+  mutationFn: ({ id, values }: { id: number; values: OrderMutationPayload }) => updateOrder(id, values),
   onSuccess: () => getQueryClient().invalidateQueries({ queryKey: orderKeys.all })
 });
 export const deleteOrderMutation = mutationOptions({
@@ -549,18 +526,10 @@ export default async function Page(props: PageProps) {
 Access control on nav items:
 
 ```ts
-access: {
-  requireOrg: true;
-} // Requires active org
-access: {
-  permission: 'org:x:manage';
-} // Requires specific permission
-access: {
-  plan: 'pro';
-} // Requires subscription plan
-access: {
-  role: 'admin';
-} // Requires role
+access: { requireOrg: true }           // Requires active org
+access: { permission: 'org:x:manage' } // Requires specific permission
+access: { plan: 'pro' }               // Requires subscription plan
+access: { role: 'admin' }             // Requires role
 ```
 
 ### Step 7: Icons (`src/components/icons.tsx`)
@@ -586,7 +555,7 @@ void queryClient.prefetchQuery(ordersQueryOptions(filters)); // void = fire-and-
 return (
   <HydrationBoundary state={dehydrate(queryClient)}>
     <Suspense fallback={<OrderTableSkeleton />}>
-      <OrderTable /> {/* client component */}
+      <OrderTable />    {/* client component */}
     </Suspense>
   </HydrationBoundary>
 );
@@ -596,7 +565,6 @@ const { data } = useSuspenseQuery(ordersQueryOptions(filters)); // NOT useQuery
 ```
 
 **Why `useSuspenseQuery` not `useQuery`:**
-
 - `useQuery` doesn't integrate with Suspense → shows loading even when data is prefetched
 - `useSuspenseQuery` picks up the dehydrated pending query and streams it via React Suspense
 
@@ -667,13 +635,13 @@ See `docs/themes.md` for full guide.
 
 `service.ts` is the only file that changes when connecting a real backend.
 
-| Pattern                        | How                                                                    |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| **Prisma + Server Actions**    | Add `'use server'` to `service.ts`, call Prisma directly               |
-| **Prisma + Route Handlers**    | `service.ts` calls `/api/` via `apiClient`; route handlers call Prisma |
-| **BFF** (Next.js → Laravel/Go) | `service.ts` calls `/api/`; route handlers proxy to external API       |
-| **External API directly**      | `service.ts` calls external URL via `fetch()`                          |
-| **Mock (default)**             | `service.ts` calls in-memory fake data store                           |
+| Pattern | How |
+|---------|-----|
+| **Prisma + Server Actions** | Add `'use server'` to `service.ts`, call Prisma directly |
+| **Prisma + Route Handlers** | `service.ts` calls `/api/` via `apiClient`; route handlers call Prisma |
+| **BFF** (Next.js → Laravel/Go) | `service.ts` calls `/api/`; route handlers proxy to external API |
+| **External API directly** | `service.ts` calls external URL via `fetch()` |
+| **Mock (default)** | `service.ts` calls in-memory fake data store |
 
 ---
 
@@ -698,7 +666,7 @@ import { Protect } from '@clerk/nextjs';
 
 <Protect plan='pro' fallback={<UpgradePrompt />}>
   <PremiumFeature />
-</Protect>;
+</Protect>
 ```
 
 ---
@@ -761,14 +729,14 @@ docker run -d -p 3000:3000 -e CLERK_SECRET_KEY=sk_xxx -e DATABASE_URL="..." dash
 
 ## Troubleshooting
 
-| Problem                          | Fix                                                                           |
-| -------------------------------- | ----------------------------------------------------------------------------- |
-| Build fails with Tailwind errors | Use `@import 'tailwindcss'` syntax; check `postcss.config.js`                 |
-| `db:push` fails                  | Ensure `DATABASE_URL` + `DIRECT_URL` are in `.env` (not just `.env.local`)    |
-| Clerk keyless popup              | Normal in dev — click to claim or add API keys                                |
-| Theme not applying               | Check `[data-theme]` name matches `theme.config.ts` + imported in `theme.css` |
-| Nav item not visible             | Check `access` property; verify user has required org/role/plan               |
-| Prisma client stale              | Run `bun run db:generate` after schema changes                                |
+| Problem | Fix |
+|---------|-----|
+| Build fails with Tailwind errors | Use `@import 'tailwindcss'` syntax; check `postcss.config.js` |
+| `db:push` fails | Ensure `DATABASE_URL` + `DIRECT_URL` are in `.env` (not just `.env.local`) |
+| Clerk keyless popup | Normal in dev — click to claim or add API keys |
+| Theme not applying | Check `[data-theme]` name matches `theme.config.ts` + imported in `theme.css` |
+| Nav item not visible | Check `access` property; verify user has required org/role/plan |
+| Prisma client stale | Run `bun run db:generate` after schema changes |
 
 ---
 
