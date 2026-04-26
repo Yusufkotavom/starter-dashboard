@@ -31,6 +31,65 @@ model AppSettings {
   updatedAt            DateTime @updatedAt
 }
 
+model IntegrationApiKey {
+  id             Int      @id @default(autoincrement())
+  organizationId String?
+  name           String
+  keyPrefix      String   @unique
+  keyHash        String   @unique
+  scopes         String[] @default([])
+  isActive       Boolean  @default(true)
+  lastUsedAt     DateTime?
+  requests       IntegrationRequest[]
+  pipelineJobs   PipelineJob[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, isActive, createdAt])
+}
+
+model IntegrationRequest {
+  id                Int                @id @default(autoincrement())
+  organizationId    String?
+  apiKeyId          Int?
+  apiKey            IntegrationApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  requestId         String             @unique
+  method            String
+  path              String
+  scope             String?
+  statusCode        Int
+  success           Boolean            @default(false)
+  requestBody       Json?
+  responseBody      Json?
+  errorMessage      String?
+  createdAt         DateTime           @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([path, createdAt])
+}
+
+model PipelineJob {
+  id                Int                @id @default(autoincrement())
+  organizationId    String?
+  apiKeyId          Int?
+  apiKey            IntegrationApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  externalId        String?            @unique
+  type              PipelineJobType
+  status            PipelineJobStatus  @default(PENDING)
+  input             Json?
+  output            Json?
+  errorMessage      String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([type, status, createdAt])
+}
+
 model DocumentSequence {
   id        Int                  @id @default(autoincrement())
   scopeKey  String
@@ -47,6 +106,21 @@ model DocumentSequence {
 enum DocumentSequenceType {
   QUOTATION
   INVOICE
+}
+
+enum PipelineJobType {
+  CREATE_CLIENT
+  CREATE_QUOTATION
+  CREATE_INVOICE
+  SEND_WHATSAPP_MESSAGE
+  ATTACH_CONVERSATION_CLIENT
+}
+
+enum PipelineJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
 }
 
 // ─── Existing: Product Catalog (unchanged) ───────────────────────────

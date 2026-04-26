@@ -1,6 +1,6 @@
 # Modular Admin Dashboard Starter
 
-> Next.js 16 · shadcn/ui · Tailwind CSS v4 · Prisma · PostgreSQL · Clerk · TypeScript
+> Next.js 16 · shadcn/ui · Tailwind CSS v4 · Prisma · PostgreSQL · Auth · TypeScript
 
 A production-ready, **fully modular** admin dashboard starter built for service businesses, internal operations, and customer-facing SaaS workflows. It starts as a clean dashboard shell, then scales into CRM, quotation, invoicing, portal, recurring billing, and messaging flows without coupling the shell to one business domain.
 
@@ -47,7 +47,7 @@ Use `scripts/cleanup.js` to transition modules between states.
 | UI Components   | shadcn/ui (Radix primitives)         |
 | Database        | PostgreSQL via Supabase              |
 | ORM             | Prisma                               |
-| Auth            | Clerk (orgs, billing, RBAC)          |
+| Auth            | Auth (orgs, billing, RBAC)          |
 | Data Fetching   | TanStack React Query v5              |
 | Tables          | TanStack Table                       |
 | Forms           | TanStack Form + Zod                  |
@@ -61,7 +61,7 @@ Use `scripts/cleanup.js` to transition modules between states.
 ## Features (Core)
 
 - 🧱 **Dashboard shell** — sidebar, header, page container, command bar, theme switcher
-- 🔐 **Auth & multi-tenant** — Clerk sign-in/up, workspace switcher, team management, billing
+- 🔐 **Auth & multi-tenant** — Auth sign-in/up, workspace switcher, team management, billing
 - 🎨 **Multi-theme system** — 10 themes, easy to add custom themes
 - 🔒 **RBAC navigation** — client-side filtering by org / permission / role / plan / feature
 - ℹ️ **Infobar component** — contextual help panel on any page
@@ -202,7 +202,7 @@ BLOB_READ_WRITE_TOKEN=
 > **Note:** Prisma CLI reads `.env` (not `.env.local`) for `db:push` and `db:seed`.  
 > Copy your `DATABASE_URL` and `DIRECT_URL` to `.env` as well for CLI commands.
 
-> **Clerk keyless mode:** The app works in development without Clerk keys — a popup will appear asking you to claim the app.
+> **Auth keyless mode:** The app works in development without Auth keys — a popup will appear asking you to claim the app.
 
 ### 3. Setup database
 
@@ -430,7 +430,7 @@ That is intentional for this starter because the schema is still managed with `d
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [Prisma Docs](https://www.prisma.io/docs)
 - [Supabase Postgres](https://supabase.com/docs/guides/database)
-- [Clerk Next.js SDK](https://clerk.com/docs/references/nextjs)
+- [Auth Next.js SDK](https://
 - [shadcn/ui](https://ui.shadcn.com/docs)
 - [TanStack Query v5](https://tanstack.com/query/latest)
 - [TanStack Form](https://tanstack.com/form/latest)
