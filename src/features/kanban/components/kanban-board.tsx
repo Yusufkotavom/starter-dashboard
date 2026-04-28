@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Kanban, KanbanBoard as KanbanBoardPrimitive, KanbanOverlay } from '@/components/ui/kanban';
@@ -9,7 +10,11 @@ import { COLUMN_TITLES, TaskColumn } from './board-column';
 import { TaskCard } from './task-card';
 import { createRestrictToContainer } from '../utils/restrict-to-container';
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  fullScreen?: boolean;
+}
+
+export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
   const { columns, setColumns } = useTaskStore();
   const [activeColumn, setActiveColumn] = useState<KanbanColumnKey>('backlog');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,9 +36,12 @@ export function KanbanBoard() {
   return (
     <div
       ref={containerRef}
-      className='rounded-lg border bg-muted/10 p-2 sm:p-3 lg:h-[calc(100dvh-17rem)] lg:min-h-[38rem]'
+      className={cn(
+        'rounded-lg border bg-muted/10 p-2 sm:p-3',
+        fullScreen ? 'flex h-full min-h-0 flex-col' : 'lg:h-[calc(100dvh-17rem)] lg:min-h-[38rem]'
+      )}
     >
-      <div className='mb-3 flex gap-1 overflow-x-auto pb-1 md:hidden'>
+      <div className='mb-3 flex shrink-0 gap-1 overflow-x-auto pb-1 md:hidden'>
         {columnEntries.map(([columnKey, tasks]) => (
           <Button
             key={columnKey}
@@ -54,18 +62,35 @@ export function KanbanBoard() {
         modifiers={[restrictToBoard]}
         autoScroll={false}
       >
-        <div className='md:hidden'>
-          <ScrollArea className='h-[calc(100dvh-22rem)] w-full rounded-md pb-2'>
-            <KanbanBoardPrimitive className='flex min-h-full items-start gap-3'>
+        <div className={cn('md:hidden', fullScreen && 'flex min-h-0 flex-1 flex-col')}>
+          <ScrollArea
+            className={cn(
+              'w-full rounded-md pb-2',
+              fullScreen ? 'h-full flex-1' : 'h-[calc(100dvh-22rem)]'
+            )}
+          >
+            <KanbanBoardPrimitive
+              className={cn('flex min-h-full items-start gap-3', fullScreen && 'h-full')}
+            >
               {mobileColumnEntries.map(([columnValue, tasks]) => (
                 <TaskColumn key={columnValue} value={columnValue} tasks={tasks} />
               ))}
             </KanbanBoardPrimitive>
           </ScrollArea>
         </div>
-        <div className='hidden md:block'>
-          <ScrollArea className='h-[calc(100dvh-17.5rem)] w-full rounded-md pb-4 lg:h-full'>
-            <KanbanBoardPrimitive className='flex min-h-full snap-x snap-mandatory items-start gap-3'>
+        <div className={cn('hidden md:block', fullScreen && 'flex min-h-0 flex-1 flex-col')}>
+          <ScrollArea
+            className={cn(
+              'w-full rounded-md pb-4',
+              fullScreen ? 'h-full flex-1' : 'h-[calc(100dvh-17.5rem)] lg:h-full'
+            )}
+          >
+            <KanbanBoardPrimitive
+              className={cn(
+                'flex min-h-full snap-x snap-mandatory items-start gap-3',
+                fullScreen && 'h-full'
+              )}
+            >
               {columnEntries.map(([columnValue, tasks]) => (
                 <TaskColumn key={columnValue} value={columnValue} tasks={tasks} />
               ))}

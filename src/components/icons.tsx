@@ -54,6 +54,7 @@ import {
   IconLogout,
   IconMessage,
   IconMinus,
+  IconMinimize,
   IconMoon,
   IconMusic,
   IconPalette,
@@ -73,6 +74,7 @@ import {
   IconSparkles,
   IconStack2,
   IconStar,
+  IconMaximize,
   IconSun,
   IconTrash,
   IconTrendingDown,
@@ -168,6 +170,8 @@ export const Icons = {
   login: IconLogin,
   logout: IconLogout,
   gripVertical: IconGripVertical,
+  maximize: IconMaximize,
+  minimize: IconMinimize,
 
   // Shapes / Indicators
   circle: IconCircle,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 import { Heading } from '../ui/heading';
 import type { InfobarContent } from '@/components/ui/infobar';
 
@@ -25,7 +26,8 @@ export default function PageContainer({
   pageTitle,
   pageDescription,
   infoContent,
-  pageHeaderAction
+  pageHeaderAction,
+  compact = false
 }: {
   children: React.ReactNode;
   isLoading?: boolean;
@@ -35,6 +37,7 @@ export default function PageContainer({
   pageDescription?: string;
   infoContent?: InfobarContent;
   pageHeaderAction?: React.ReactNode;
+  compact?: boolean;
 }) {
   if (!access) {
     return (
@@ -50,10 +53,11 @@ export default function PageContainer({
 
   const content = isLoading ? <PageSkeleton /> : children;
 
-  const hasHeader = pageTitle || pageHeaderAction;
+  const hasHeader = !compact && (pageTitle || pageHeaderAction);
+  const hasActionBar = compact && pageHeaderAction;
 
   return (
-    <div className='flex flex-1 flex-col p-4 md:px-6'>
+    <div className={cn('flex flex-1 flex-col p-4 md:px-6', compact && 'p-2 md:px-3')}>
       {hasHeader && (
         <div className='bg-background sticky top-0 z-10 mb-4 flex items-start justify-between gap-4 pb-4'>
           <Heading
@@ -64,7 +68,12 @@ export default function PageContainer({
           {pageHeaderAction && <div className='shrink-0'>{pageHeaderAction}</div>}
         </div>
       )}
-      {content}
+      {hasActionBar && (
+        <div className='bg-background sticky top-0 z-10 mb-2 flex items-center justify-end gap-2 pb-2'>
+          {pageHeaderAction}
+        </div>
+      )}
+      {compact ? <div className='flex min-h-0 flex-1 flex-col'>{content}</div> : content}
     </div>
   );
 }

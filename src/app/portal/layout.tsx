@@ -1,15 +1,28 @@
 import type { ReactNode } from 'react';
+import KBar from '@/components/kbar';
+import Header from '@/components/layout/header';
+import { InfoSidebar } from '@/components/layout/info-sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { InfobarProvider } from '@/components/ui/infobar';
 import { PortalSidebar } from '@/app/portal/_components/portal-sidebar';
+import { cookies } from 'next/headers';
 
-export default function PortalLayout({ children }: { children: ReactNode }) {
+export default async function PortalLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
+
   return (
-    <div className='min-h-screen bg-muted/20'>
-      <main className='mx-auto max-w-7xl px-6 py-8'>
-        <div className='grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start'>
+    <KBar>
+      <SidebarProvider defaultOpen={defaultOpen}>
+        <InfobarProvider defaultOpen={false}>
           <PortalSidebar />
-          <section className='min-w-0'>{children}</section>
-        </div>
-      </main>
-    </div>
+          <SidebarInset>
+            <Header />
+            <div className='flex flex-1 flex-col p-4 md:px-6'>{children}</div>
+          </SidebarInset>
+          <InfoSidebar side='right' />
+        </InfobarProvider>
+      </SidebarProvider>
+    </KBar>
   );
 }

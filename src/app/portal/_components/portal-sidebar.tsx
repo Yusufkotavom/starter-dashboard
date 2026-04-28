@@ -1,88 +1,152 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { SignOutButton, useOrganization, useUser } from '@clerk/nextjs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail
+} from '@/components/ui/sidebar';
+import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 const portalNavItems = [
-  {
-    title: 'Overview',
-    href: '/portal',
-    icon: 'dashboard'
-  },
-  {
-    title: 'Order',
-    href: '/portal/orders',
-    icon: 'add'
-  },
-  {
-    title: 'Invoices',
-    href: '/portal/invoices',
-    icon: 'billing'
-  },
-  {
-    title: 'Quotations',
-    href: '/portal/quotations',
-    icon: 'post'
-  },
-  {
-    title: 'Projects',
-    href: '/portal/projects',
-    icon: 'workspace'
-  },
-  {
-    title: 'Subscriptions',
-    href: '/portal/subscriptions',
-    icon: 'sparkles'
-  },
-  {
-    title: 'Digital Access',
-    href: '/portal/digital-access',
-    icon: 'externalLink'
-  }
+  { title: 'Overview', href: '/portal', icon: 'dashboard' },
+  { title: 'Order', href: '/portal/orders', icon: 'add' },
+  { title: 'Invoices', href: '/portal/invoices', icon: 'billing' },
+  { title: 'Quotations', href: '/portal/quotations', icon: 'post' },
+  { title: 'Projects', href: '/portal/projects', icon: 'workspace' },
+  { title: 'Subscriptions', href: '/portal/subscriptions', icon: 'sparkles' },
+  { title: 'Digital Access', href: '/portal/digital-access', icon: 'externalLink' }
 ] as const;
 
 export function PortalSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useUser();
+  const { organization } = useOrganization();
 
   return (
-    <aside className='w-full rounded-3xl border bg-background p-4 lg:sticky lg:top-6 lg:w-72'>
-      <div className='mb-4 flex items-center gap-3 px-2'>
-        <span className='flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
-          <Icons.dashboard className='h-5 w-5' />
-        </span>
-        <div>
-          <div className='font-semibold'>Client Portal</div>
-          <div className='text-muted-foreground text-xs'>Orders, billing, and delivery</div>
+    <Sidebar collapsible='icon'>
+      <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
+        <div className='flex items-center gap-3 px-2'>
+          <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-9 shrink-0 items-center justify-center rounded-lg'>
+            <Icons.dashboard className='size-4' />
+          </div>
+          <div className='min-w-0'>
+            <div className='truncate text-sm font-semibold'>Client Portal</div>
+            <div className='text-sidebar-foreground/70 truncate text-xs'>
+              Orders, billing, and delivery
+            </div>
+          </div>
         </div>
-      </div>
+      </SidebarHeader>
 
-      <nav className='space-y-1'>
-        {portalNavItems.map((item) => {
-          const Icon = Icons[item.icon];
-          const isActive =
-            item.href === '/portal'
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <SidebarContent className='overflow-x-hidden'>
+        <SidebarGroup className='py-0'>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarMenu>
+            {portalNavItems.map((item) => {
+              const Icon = Icons[item.icon];
+              const isActive =
+                item.href === '/portal'
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <Icon className='h-4 w-4' />
-              <span>{item.title}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActive}
+                    className={cn(isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')}
+                  >
+                    <Link href={item.href}>
+                      <Icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size='lg'
+                  className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
+                >
+                  {user && (
+                    <UserAvatarProfile className='h-8 w-8 rounded-lg' showInfo user={user} />
+                  )}
+                  <Icons.chevronsDown className='ml-auto size-4' />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg'
+                side='bottom'
+                align='end'
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className='p-0 font-normal'>
+                  <div className='px-1 py-1.5'>
+                    {user && (
+                      <UserAvatarProfile className='h-8 w-8 rounded-lg' showInfo user={user} />
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
+                    <Icons.account className='mr-2 h-4 w-4' />
+                    Profile
+                  </DropdownMenuItem>
+                  {organization && (
+                    <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
+                      <Icons.creditCard className='mr-2 h-4 w-4' />
+                      Billing
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
+                    <Icons.notification className='mr-2 h-4 w-4' />
+                    Notifications
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Icons.logout className='mr-2 h-4 w-4' />
+                  <SignOutButton redirectUrl='/auth/sign-in' />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }

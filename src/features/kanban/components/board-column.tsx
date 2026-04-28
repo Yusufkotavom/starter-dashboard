@@ -9,6 +9,7 @@ import { TaskCard } from './task-card';
 
 export const COLUMN_TITLES: Record<KanbanColumnKey, string> = {
   backlog: 'Backlog',
+  todo: 'Todo',
   inProgress: 'In Progress',
   review: 'Review',
   done: 'Done'

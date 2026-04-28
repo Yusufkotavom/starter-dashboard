@@ -15,9 +15,11 @@ function getSingleValue(value: string | string[] | null | undefined): string | u
 
 export default async function Page(props: PageProps) {
   const searchParams = await props.searchParams;
+  const compact = getSingleValue(searchParams.compact) === '1';
 
   return (
     <KanbanViewPage
+      compact={compact}
       context={{
         projectId: getSingleValue(searchParams.projectId),
         projectName: getSingleValue(searchParams.project),

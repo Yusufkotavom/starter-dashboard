@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid';
 // import { persist } from 'zustand/middleware';
 
 export type Priority = 'low' | 'medium' | 'high';
-export type KanbanColumnKey = 'backlog' | 'inProgress' | 'review' | 'done';
+export type KanbanColumnKey = 'backlog' | 'todo' | 'inProgress' | 'review' | 'done';
 
 export type Task = {
   id: string;
@@ -55,6 +55,22 @@ const initialColumns: Record<KanbanColumnKey, Task[]> = {
       priority: 'medium',
       assignee: 'Jordan Kim',
       dueDate: '2026-04-10'
+    }
+  ],
+  todo: [
+    {
+      id: '12',
+      title: 'Confirm delivery scope with client',
+      priority: 'high',
+      assignee: 'Sarah Chen',
+      dueDate: '2026-04-05'
+    },
+    {
+      id: '13',
+      title: 'Break roadmap into implementation tickets',
+      priority: 'medium',
+      assignee: 'Emily Nakamura',
+      dueDate: '2026-04-06'
     }
   ],
   inProgress: [
@@ -144,6 +160,7 @@ export const useTaskStore = create<KanbanState>()(
       set((state) => {
         const nextColumns: Record<KanbanColumnKey, Task[]> = {
           backlog: [...state.columns.backlog],
+          todo: [...state.columns.todo],
           inProgress: [...state.columns.inProgress],
           review: [...state.columns.review],
           done: [...state.columns.done]
