@@ -34,3 +34,29 @@ export interface WhatsAppSetupStatus {
   screenshotUrl: string | null;
   message: string;
 }
+
+export interface IntegrationKeyRecord {
+  id: number;
+  organizationId: string | null;
+  name: string;
+  keyPrefix: string;
+  scopes: string[];
+  isActive: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IntegrationKeysResponse {
+  items: IntegrationKeyRecord[];
+}
+
+export interface CreateIntegrationKeyPayload {
+  name: string;
+  scopes: string[];
+}
+
+export interface CreateIntegrationKeyResponse {
+  key: string;
+  record: IntegrationKeyRecord;
+}

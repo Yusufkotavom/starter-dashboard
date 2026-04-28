@@ -22,6 +22,8 @@ All integration endpoints are under `/api/v1/*` and return envelope:
 - `quotations:read`, `quotations:write`
 - `invoices:read`, `invoices:write`
 - `projects:read`, `projects:write`
+- `docs:read`, `docs:write`
+- `tasks:read`, `tasks:write`
 - `payments:read`, `payments:write`
 - `products:read`, `products:write`
 - `categories:read`, `categories:write`
@@ -48,6 +50,8 @@ All integration endpoints are under `/api/v1/*` and return envelope:
 - `products`
 - `categories`
 - `projects`
+- `docs`
+- `tasks`
 - `payments`
 - `subscriptions/plans`
 - `subscriptions/client-subscriptions`
@@ -72,6 +76,10 @@ Exposed MCP tools:
 - `communications_send`
 - `pipeline_create_job`
 - `pipeline_get_job`
+- `docs_list`
+- `docs_create`
+- `tasks_list`
+- `tasks_create`
 
 ## Quick curl smoke test
 

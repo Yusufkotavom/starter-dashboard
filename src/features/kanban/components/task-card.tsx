@@ -74,6 +74,9 @@ export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) 
                     {task.artifactPath}
                   </span>
                 ) : null}
+                {task.docId ? (
+                  <span className='text-muted-foreground text-[10px]'>Doc #{task.docId}</span>
+                ) : null}
               </div>
             </div>
             <Badge

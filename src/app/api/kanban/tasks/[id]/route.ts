@@ -16,6 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const body = (await request.json()) as UpdateKanbanTaskPayload;
+  const docId = body.docId && Number.isFinite(body.docId) ? body.docId : null;
   const existing = await prisma.kanbanTask.findFirst({
     where: {
       id: parsedId,
@@ -39,6 +40,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(typeof body.artifactPath === 'string'
         ? { artifactPath: body.artifactPath.trim() || null }
         : {}),
+      ...(body.docId !== undefined ? { docId } : {}),
       ...(typeof body.assignee === 'string' ? { assignee: body.assignee.trim() || null } : {}),
       ...(body.priority ? { priority: body.priority } : {}),
       ...(body.column ? { column: COLUMN_TO_DB[body.column] } : {}),

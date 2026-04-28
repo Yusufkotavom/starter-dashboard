@@ -33,6 +33,7 @@ export function mapTask(task: Prisma.KanbanTaskGetPayload<Record<string, never>>
     description: task.description ?? undefined,
     artifactType,
     artifactPath: task.artifactPath ?? undefined,
+    docId: task.docId ?? undefined,
     assignee: task.assignee ?? undefined,
     priority:
       task.priority === 'high' || task.priority === 'medium' || task.priority === 'low'

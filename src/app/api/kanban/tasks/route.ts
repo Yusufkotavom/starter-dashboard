@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
   const organizationId = await getActiveOrganizationId();
   const body = (await request.json()) as CreateKanbanTaskPayload;
   const projectId = body.projectId && Number.isFinite(body.projectId) ? body.projectId : null;
+  const docId = body.docId && Number.isFinite(body.docId) ? body.docId : null;
 
   if (!body.title?.trim()) {
     return NextResponse.json({ message: 'Title is required' }, { status: 400 });
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       description: body.description?.trim() || null,
       artifactType: body.artifactType ?? 'task',
       artifactPath: body.artifactPath?.trim() || null,
+      docId,
       assignee: body.assignee?.trim() || null,
       priority: body.priority ?? 'medium',
       column: 'BACKLOG',

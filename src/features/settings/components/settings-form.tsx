@@ -1,15 +1,26 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { cn } from '@/lib/utils';
-import { connectWhatsAppSessionMutation, updateSettingsMutation } from '../api/mutations';
-import { settingsQueryOptions, whatsappSetupStatusQueryOptions } from '../api/queries';
+import {
+  connectWhatsAppSessionMutation,
+  createIntegrationKeyMutation,
+  updateSettingsMutation
+} from '../api/mutations';
+import {
+  integrationKeysQueryOptions,
+  settingsQueryOptions,
+  whatsappSetupStatusQueryOptions
+} from '../api/queries';
 
 const currencyOptions = [
   { value: 'IDR', label: 'IDR' },
@@ -70,6 +81,18 @@ export default function SettingsForm() {
   const { data: whatsappStatus, refetch: refetchWhatsAppStatus } = useSuspenseQuery(
     whatsappSetupStatusQueryOptions()
   );
+  const { data: integrationKeys, refetch: refetchIntegrationKeys } = useSuspenseQuery(
+    integrationKeysQueryOptions()
+  );
+  const [integrationName, setIntegrationName] = useState('Agent Integration Key');
+  const [integrationScopes, setIntegrationScopes] = useState('*');
+  const [generatedApiKey, setGeneratedApiKey] = useState<string | null>(null);
+  const integrationBaseUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:3000';
+  const integrationEnvSnippet = useMemo(() => {
+    const keyValue = generatedApiKey ?? 'sdk_live_xxx';
+    return `INTEGRATION_API_BASE_URL="${integrationBaseUrl}"\nINTEGRATION_API_KEY="${keyValue}"`;
+  }, [generatedApiKey, integrationBaseUrl]);
   const mutation = useMutation({
     ...updateSettingsMutation,
     onSuccess: () => {
@@ -86,6 +109,18 @@ export default function SettingsForm() {
     },
     onError: () => {
       toast.error('Failed to prepare WhatsApp session');
+    }
+  });
+  const createIntegrationKeyAction = useMutation({
+    ...createIntegrationKeyMutation,
+    onSuccess: (result) => {
+      setGeneratedApiKey(result.key);
+      toast.success('Integration API key generated');
+      void refetchIntegrationKeys();
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Failed to generate integration key';
+      toast.error(message);
     }
   });
 
@@ -145,6 +180,7 @@ export default function SettingsForm() {
                 <TabsTrigger value='billing'>Billing</TabsTrigger>
                 <TabsTrigger value='payments'>Payments</TabsTrigger>
                 <TabsTrigger value='whatsapp'>WhatsApp</TabsTrigger>
+                <TabsTrigger value='integration'>Integration</TabsTrigger>
               </TabsList>
 
               <TabsContent value='branding'>
@@ -391,6 +427,115 @@ export default function SettingsForm() {
                           />
                         </div>
                       ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value='integration'>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className='text-base'>Integration API Keys</CardTitle>
+                    <CardDescription>
+                      Generate API key for agent/MCP access and copy env values directly.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className='space-y-4'>
+                    <div className='grid gap-4 md:grid-cols-2'>
+                      <div className='space-y-2'>
+                        <Label htmlFor='integration-key-name'>Key Name</Label>
+                        <Input
+                          id='integration-key-name'
+                          value={integrationName}
+                          onChange={(event) => setIntegrationName(event.target.value)}
+                          placeholder='Agent Integration Key'
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <Label htmlFor='integration-key-scopes'>Scopes (comma-separated)</Label>
+                        <Input
+                          id='integration-key-scopes'
+                          value={integrationScopes}
+                          onChange={(event) => setIntegrationScopes(event.target.value)}
+                          placeholder='*'
+                        />
+                      </div>
+                    </div>
+
+                    <div className='flex flex-wrap gap-2'>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        isLoading={createIntegrationKeyAction.isPending}
+                        onClick={() => {
+                          const scopes = integrationScopes
+                            .split(',')
+                            .map((scope) => scope.trim())
+                            .filter(Boolean);
+
+                          void createIntegrationKeyAction.mutateAsync({
+                            name: integrationName.trim() || 'Agent Integration Key',
+                            scopes: scopes.length > 0 ? scopes : ['*']
+                          });
+                        }}
+                      >
+                        Generate API Key
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        onClick={() => void navigator.clipboard.writeText(integrationEnvSnippet)}
+                      >
+                        Copy .env Snippet
+                      </Button>
+                    </div>
+
+                    {generatedApiKey ? (
+                      <div className='space-y-2 rounded-md border p-3'>
+                        <p className='text-sm font-medium'>Generated API Key (shown once)</p>
+                        <code className='block overflow-x-auto rounded bg-muted px-2 py-1 text-xs'>
+                          {generatedApiKey}
+                        </code>
+                      </div>
+                    ) : null}
+
+                    <div className='space-y-2 rounded-md border p-3'>
+                      <p className='text-sm font-medium'>.env values</p>
+                      <pre className='overflow-x-auto rounded bg-muted px-2 py-1 text-xs'>
+                        {integrationEnvSnippet}
+                      </pre>
+                    </div>
+
+                    <div className='space-y-2 rounded-md border p-3'>
+                      <p className='text-sm font-medium'>Existing Keys</p>
+                      <div className='space-y-2'>
+                        {integrationKeys.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className='flex flex-col gap-1 rounded border px-2 py-1 text-xs'
+                          >
+                            <div className='flex items-center justify-between gap-2'>
+                              <span className='font-medium'>{item.name}</span>
+                              <span
+                                className={cn(
+                                  'rounded px-1.5 py-0.5',
+                                  item.isActive
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-slate-200 text-slate-700'
+                                )}
+                              >
+                                {item.isActive ? 'active' : 'inactive'}
+                              </span>
+                            </div>
+                            <div className='text-muted-foreground'>
+                              Prefix: {item.keyPrefix} | Scopes: {item.scopes.join(', ')}
+                            </div>
+                          </div>
+                        ))}
+                        {integrationKeys.items.length === 0 ? (
+                          <p className='text-muted-foreground text-xs'>No integration key yet.</p>
+                        ) : null}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

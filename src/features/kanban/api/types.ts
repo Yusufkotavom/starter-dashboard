@@ -8,6 +8,7 @@ export interface KanbanTask {
   description?: string;
   artifactType: KanbanArtifactType;
   artifactPath?: string;
+  docId?: number;
   assignee?: string;
   priority: Priority;
   column: KanbanColumnKey;
@@ -25,6 +26,7 @@ export interface CreateKanbanTaskPayload {
   description?: string;
   artifactType?: KanbanArtifactType;
   artifactPath?: string;
+  docId?: number | null;
   assignee?: string;
   priority?: Priority;
 }
@@ -34,6 +36,7 @@ export interface UpdateKanbanTaskPayload {
   description?: string;
   artifactType?: KanbanArtifactType;
   artifactPath?: string;
+  docId?: number | null;
   assignee?: string;
   priority?: Priority;
   column?: KanbanColumnKey;

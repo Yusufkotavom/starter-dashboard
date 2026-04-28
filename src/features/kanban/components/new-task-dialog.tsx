@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { createKanbanTaskMutation } from '../api/mutations';
 import type { KanbanArtifactType } from '../api/types';
+import { apiClient } from '@/lib/api-client';
 
 const artifactTypeOptions: Array<{ value: KanbanArtifactType; label: string }> = [
   { value: 'task', label: 'Task' },
@@ -38,13 +39,22 @@ interface NewTaskDialogProps {
 
 export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
   const createTask = useMutation(createKanbanTaskMutation);
+  const { data: docsData } = useQuery({
+    queryKey: ['docs', 'kanban', projectId ?? 'global'],
+    queryFn: async () => {
+      const query = projectId ? `?projectId=${projectId}` : '';
+      return apiClient<{
+        items: Array<{ id: number; title: string; type: string; projectId: number | null }>;
+      }>(`/docs${query}`);
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const { title, description, artifactType, artifactPath, assignee, priority } =
+    const { title, description, artifactType, artifactPath, docId, assignee, priority } =
       Object.fromEntries(formData);
 
     if (typeof title !== 'string') return;
@@ -62,6 +72,7 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
           ? artifactType
           : 'task',
       artifactPath: typeof artifactPath === 'string' ? artifactPath : undefined,
+      docId: typeof docId === 'string' && docId !== 'none' ? Number(docId) : undefined,
       assignee: typeof assignee === 'string' ? assignee : undefined,
       priority:
         priority === 'high' || priority === 'medium' || priority === 'low' ? priority : 'medium'
@@ -114,6 +125,21 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
               placeholder='Path / ref (example: docs/masterplan.md)'
               className='col-span-4'
             />
+          </div>
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Select name='docId' defaultValue='none'>
+              <SelectTrigger className='col-span-4 w-full'>
+                <SelectValue placeholder='Link to doc (optional)' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='none'>No linked doc</SelectItem>
+                {(docsData?.items ?? []).map((doc) => (
+                  <SelectItem key={doc.id} value={String(doc.id)}>
+                    {doc.title} ({doc.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className='grid grid-cols-4 items-center gap-4'>
             <Input

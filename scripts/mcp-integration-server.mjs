@@ -116,6 +116,67 @@ const tools = [
       required: ['id'],
       additionalProperties: false
     }
+  },
+  {
+    name: 'docs_list',
+    description: 'List docs',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        search: { type: 'string' },
+        projectId: { type: 'number' }
+      },
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'docs_create',
+    description: 'Create doc',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'number' },
+        type: { type: 'string' },
+        title: { type: 'string' },
+        content: { type: 'string' }
+      },
+      required: ['title'],
+      additionalProperties: true
+    }
+  },
+  {
+    name: 'tasks_list',
+    description: 'List project tasks',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page: { type: 'number' },
+        limit: { type: 'number' },
+        projectId: { type: 'number' }
+      },
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'tasks_create',
+    description: 'Create task',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'number' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        artifactType: { type: 'string' },
+        artifactPath: { type: 'string' },
+        docId: { type: 'number' },
+        assignee: { type: 'string' },
+        priority: { type: 'string' }
+      },
+      required: ['title'],
+      additionalProperties: true
+    }
   }
 ];
 
@@ -162,6 +223,14 @@ async function handleToolCall(name, args = {}) {
       return callIntegration('POST', '/api/v1/pipeline/jobs', args);
     case 'pipeline_get_job':
       return callIntegration('GET', `/api/v1/pipeline/jobs/${encodeURIComponent(String(args.id || ''))}`);
+    case 'docs_list':
+      return callIntegration('GET', '/api/v1/docs', null, args);
+    case 'docs_create':
+      return callIntegration('POST', '/api/v1/docs', args);
+    case 'tasks_list':
+      return callIntegration('GET', '/api/v1/tasks', null, args);
+    case 'tasks_create':
+      return callIntegration('POST', '/api/v1/tasks', args);
     default:
       return {
         status: 400,

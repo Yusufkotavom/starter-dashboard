@@ -1,9 +1,10 @@
 import { queryOptions } from '@tanstack/react-query';
-import { getSettings, getWhatsAppSetupStatus } from './service';
+import { getIntegrationKeys, getSettings, getWhatsAppSetupStatus } from './service';
 
 export const settingsKeys = {
   all: ['settings'] as const,
-  whatsappStatus: () => [...settingsKeys.all, 'whatsapp-status'] as const
+  whatsappStatus: () => [...settingsKeys.all, 'whatsapp-status'] as const,
+  integrationKeys: () => [...settingsKeys.all, 'integration-keys'] as const
 };
 
 export const settingsQueryOptions = () =>
@@ -16,4 +17,10 @@ export const whatsappSetupStatusQueryOptions = () =>
   queryOptions({
     queryKey: settingsKeys.whatsappStatus(),
     queryFn: getWhatsAppSetupStatus
+  });
+
+export const integrationKeysQueryOptions = () =>
+  queryOptions({
+    queryKey: settingsKeys.integrationKeys(),
+    queryFn: getIntegrationKeys
   });
