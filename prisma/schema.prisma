@@ -12,6 +12,7 @@ model AppSettings {
   id                   Int      @id @default(1)
   companyName          String   @default("Open Agency Studio")
   companyEmail         String   @default("finance@openagency.test")
+  companyLogoUrl       String?
   defaultCurrency      String   @default("IDR")
   invoicePrefix        String   @default("INV")
   quotationPrefix      String   @default("QUO")
@@ -257,6 +258,9 @@ model Project {
   quotationId Int?          @unique
   quotation   Quotation?    @relation(fields: [quotationId], references: [id], onDelete: SetNull)
   status      ProjectStatus @default(ACTIVE)
+  mode        ProjectMode   @default(CLIENT_DELIVERY)
+  agentStack  String?
+  playbookRefs String?
   startDate   DateTime?
   endDate     DateTime?
   budget      Decimal?      @db.Decimal(15, 2)
@@ -280,6 +284,11 @@ enum ProjectStatus {
   CANCELLED
 }
 
+enum ProjectMode {
+  CLIENT_DELIVERY
+  AGENT_PLAYGROUND
+}
+
 enum KanbanColumn {
   BACKLOG
   TODO
@@ -295,6 +304,8 @@ model KanbanTask {
   project        Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   title          String
   description    String?
+  artifactType   String       @default("task")
+  artifactPath   String?
   assignee       String?
   priority       String       @default("medium")
   column         KanbanColumn @default(BACKLOG)

@@ -37,6 +37,7 @@ export interface InvoiceDocumentData {
   payments: InvoiceDocumentPayment[];
   issuerName: string;
   issuerEmail: string;
+  issuerLogoUrl: string | null;
   paymentBankName: string | null;
   paymentAccountName: string | null;
   paymentAccountNumber: string | null;
@@ -93,6 +94,7 @@ export async function getInvoiceDocumentData(
     notes: invoice.notes,
     issuerName: appSettings.companyName,
     issuerEmail: appSettings.companyEmail,
+    issuerLogoUrl: 'companyLogoUrl' in appSettings ? appSettings.companyLogoUrl : null,
     paymentBankName: 'paymentBankName' in appSettings ? appSettings.paymentBankName : null,
     paymentAccountName: 'paymentAccountName' in appSettings ? appSettings.paymentAccountName : null,
     paymentAccountNumber:
@@ -212,6 +214,7 @@ export function renderInvoiceDocumentHtml(
       }
     ],
     options,
-    id: invoice.id
+    id: invoice.id,
+    logoUrl: invoice.issuerLogoUrl
   });
 }

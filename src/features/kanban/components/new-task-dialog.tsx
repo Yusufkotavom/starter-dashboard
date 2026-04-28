@@ -21,6 +21,16 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { createKanbanTaskMutation } from '../api/mutations';
+import type { KanbanArtifactType } from '../api/types';
+
+const artifactTypeOptions: Array<{ value: KanbanArtifactType; label: string }> = [
+  { value: 'task', label: 'Task' },
+  { value: 'masterplan', label: 'Masterplan' },
+  { value: 'agent_md', label: 'agent.md' },
+  { value: 'readme', label: 'README' },
+  { value: 'doc', label: 'Document' },
+  { value: 'note', label: 'Note' }
+];
 
 interface NewTaskDialogProps {
   projectId?: number;
@@ -34,13 +44,24 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const { title, description, assignee, priority } = Object.fromEntries(formData);
+    const { title, description, artifactType, artifactPath, assignee, priority } =
+      Object.fromEntries(formData);
 
     if (typeof title !== 'string') return;
     createTask.mutate({
       projectId,
       title,
       description: typeof description === 'string' ? description : undefined,
+      artifactType:
+        artifactType === 'masterplan' ||
+        artifactType === 'agent_md' ||
+        artifactType === 'readme' ||
+        artifactType === 'doc' ||
+        artifactType === 'note' ||
+        artifactType === 'task'
+          ? artifactType
+          : 'task',
+      artifactPath: typeof artifactPath === 'string' ? artifactPath : undefined,
       assignee: typeof assignee === 'string' ? assignee : undefined,
       priority:
         priority === 'high' || priority === 'medium' || priority === 'low' ? priority : 'medium'
@@ -55,7 +76,7 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
           + Add New Task
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent className='sm:max-w-[520px]'>
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
           <DialogDescription>What do you want to get done today?</DialogDescription>
@@ -68,7 +89,29 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
             <Textarea
               id='description'
               name='description'
-              placeholder='Description...'
+              placeholder='Description / context / acceptance criteria...'
+              className='col-span-4'
+            />
+          </div>
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Select name='artifactType' defaultValue='task'>
+              <SelectTrigger className='col-span-4 w-full'>
+                <SelectValue placeholder='Type' />
+              </SelectTrigger>
+              <SelectContent>
+                {artifactTypeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Input
+              id='artifactPath'
+              name='artifactPath'
+              placeholder='Path / ref (example: docs/masterplan.md)'
               className='col-span-4'
             />
           </div>

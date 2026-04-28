@@ -1,5 +1,5 @@
 import { KanbanColumn, Prisma } from '@prisma/client';
-import type { KanbanColumnKey, KanbanTask } from '@/features/kanban/api/types';
+import type { KanbanArtifactType, KanbanColumnKey, KanbanTask } from '@/features/kanban/api/types';
 
 export const COLUMN_FROM_DB: Record<KanbanColumn, KanbanColumnKey> = {
   BACKLOG: 'backlog',
@@ -18,10 +18,21 @@ export const COLUMN_TO_DB: Record<KanbanColumnKey, KanbanColumn> = {
 };
 
 export function mapTask(task: Prisma.KanbanTaskGetPayload<Record<string, never>>): KanbanTask {
+  const artifactType: KanbanArtifactType =
+    task.artifactType === 'masterplan' ||
+    task.artifactType === 'agent_md' ||
+    task.artifactType === 'readme' ||
+    task.artifactType === 'doc' ||
+    task.artifactType === 'note'
+      ? task.artifactType
+      : 'task';
+
   return {
     id: task.id,
     title: task.title,
     description: task.description ?? undefined,
+    artifactType,
+    artifactPath: task.artifactPath ?? undefined,
     assignee: task.assignee ?? undefined,
     priority:
       task.priority === 'high' || task.priority === 'medium' || task.priority === 'low'

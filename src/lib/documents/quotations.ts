@@ -34,6 +34,7 @@ export interface QuotationDocumentData {
   items: QuotationDocumentItem[];
   issuerName: string;
   issuerEmail: string;
+  issuerLogoUrl: string | null;
 }
 
 export async function getQuotationDocumentData(
@@ -79,6 +80,7 @@ export async function getQuotationDocumentData(
     notes: quotation.notes,
     issuerName: appSettings.companyName,
     issuerEmail: appSettings.companyEmail,
+    issuerLogoUrl: 'companyLogoUrl' in appSettings ? appSettings.companyLogoUrl : null,
     items: quotation.items.map((item) => ({
       description: item.product?.name ?? item.description,
       qty: Number(item.qty),
@@ -173,6 +175,7 @@ export function renderQuotationDocumentHtml(
       }
     ],
     options,
-    id: quotation.id
+    id: quotation.id,
+    logoUrl: quotation.issuerLogoUrl
   });
 }

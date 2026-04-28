@@ -204,6 +204,9 @@ export async function buildProjectDocument(
     clientId: quotation?.clientId ?? body.clientId,
     quotationId: body.quotationId ?? null,
     status: body.status,
+    mode: body.mode ?? 'CLIENT_DELIVERY',
+    agentStack: body.agentStack?.trim() || null,
+    playbookRefs: body.playbookRefs?.trim() || null,
     startDate: body.startDate ? new Date(body.startDate) : null,
     endDate: body.endDate ? new Date(body.endDate) : null,
     budget:

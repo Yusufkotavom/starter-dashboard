@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { hashIntegrationApiKey } from '@/lib/integration-auth';
+import { normalizeIntegrationScopes } from '@/lib/integration-scopes';
 
 export interface IntegrationKeyRecord {
   id: number;
@@ -65,7 +66,7 @@ export async function createIntegrationApiKey(args: {
       name: args.name.trim(),
       keyPrefix,
       keyHash: hashIntegrationApiKey(rawKey),
-      scopes: [...new Set(args.scopes)].toSorted(),
+      scopes: normalizeIntegrationScopes(args.scopes),
       isActive: true
     }
   });
@@ -74,4 +75,38 @@ export async function createIntegrationApiKey(args: {
     key: rawKey,
     record: mapIntegrationKeyRecord(created)
   };
+}
+
+export async function rotateIntegrationApiKey(args: {
+  id: number;
+  organizationId: string | null;
+  name?: string;
+  scopes?: string[];
+  disablePrevious?: boolean;
+}) {
+  const current = await prisma.integrationApiKey.findFirst({
+    where: {
+      id: args.id,
+      organizationId: args.organizationId
+    }
+  });
+
+  if (!current) {
+    throw new Error('NOT_FOUND');
+  }
+
+  const created = await createIntegrationApiKey({
+    organizationId: current.organizationId,
+    name: args.name?.trim() || `${current.name} (rotated)`,
+    scopes: args.scopes && args.scopes.length > 0 ? args.scopes : current.scopes
+  });
+
+  if (args.disablePrevious !== false) {
+    await prisma.integrationApiKey.update({
+      where: { id: current.id },
+      data: { isActive: false }
+    });
+  }
+
+  return created;
 }

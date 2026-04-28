@@ -27,6 +27,7 @@ import {
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { CompanyBrand } from '@/components/layout/company-brand';
 
 const portalNavItems = [
   { title: 'Overview', href: '/portal', icon: 'dashboard' },
@@ -46,17 +47,7 @@ export function PortalSidebar() {
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
-        <div className='flex items-center gap-3 px-2'>
-          <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-9 shrink-0 items-center justify-center rounded-lg'>
-            <Icons.dashboard className='size-4' />
-          </div>
-          <div className='min-w-0'>
-            <div className='truncate text-sm font-semibold'>Client Portal</div>
-            <div className='text-sidebar-foreground/70 truncate text-xs'>
-              Orders, billing, and delivery
-            </div>
-          </div>
-        </div>
+        <CompanyBrand subtitle='Client Portal' />
       </SidebarHeader>
 
       <SidebarContent className='overflow-x-hidden'>

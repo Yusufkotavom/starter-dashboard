@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
       projectId,
       title: body.title.trim(),
       description: body.description?.trim() || null,
+      artifactType: body.artifactType ?? 'task',
+      artifactPath: body.artifactPath?.trim() || null,
       assignee: body.assignee?.trim() || null,
       priority: body.priority ?? 'medium',
       column: 'BACKLOG',

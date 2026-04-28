@@ -20,6 +20,9 @@ export const projectSchema = z
         'Quotation ID must be a positive number.'
       ),
     status: z.enum(['ACTIVE', 'COMPLETED', 'PAUSED', 'CANCELLED']),
+    mode: z.enum(['CLIENT_DELIVERY', 'AGENT_PLAYGROUND']),
+    agentStack: z.string().nullable().optional(),
+    playbookRefs: z.string().nullable().optional(),
     startDate: z.string().nullable().optional(),
     endDate: z.string().nullable().optional(),
     budget: optionalNumber.refine(

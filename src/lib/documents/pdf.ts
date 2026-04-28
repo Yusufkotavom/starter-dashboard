@@ -60,8 +60,54 @@ async function createBasePdf(title: string, number: string, status: string) {
   return { pdf, page, font, bold };
 }
 
+async function drawLogoIfAvailable(
+  pdf: PDFDocument,
+  page: PDFPage,
+  logoUrl: string | null | undefined
+) {
+  if (!logoUrl) return;
+
+  try {
+    const response = await fetch(logoUrl);
+    if (!response.ok) return;
+
+    const contentType = response.headers.get('content-type') ?? '';
+    const bytes = await response.arrayBuffer();
+    const image = contentType.includes('png')
+      ? await pdf.embedPng(bytes)
+      : await pdf.embedJpg(bytes);
+
+    const maxSize = 48;
+    const width = image.width;
+    const height = image.height;
+    const ratio = width > height ? maxSize / width : maxSize / height;
+    const drawWidth = width * ratio;
+    const drawHeight = height * ratio;
+
+    page.drawRectangle({
+      x: 490,
+      y: 748,
+      width: 52,
+      height: 52,
+      borderColor: rgb(0.88, 0.9, 0.92),
+      borderWidth: 1,
+      color: rgb(1, 1, 1)
+    });
+
+    page.drawImage(image, {
+      x: 492 + (48 - drawWidth) / 2,
+      y: 750 + (48 - drawHeight) / 2,
+      width: drawWidth,
+      height: drawHeight
+    });
+  } catch {
+    // Ignore logo rendering failures, document generation must continue.
+  }
+}
+
 export async function generateInvoicePdf(invoice: InvoiceDocumentData): Promise<Uint8Array> {
   const { pdf, page, font, bold } = await createBasePdf('Invoice', invoice.number, invoice.status);
+  await drawLogoIfAvailable(pdf, page, invoice.issuerLogoUrl);
 
   let y = 718;
   const leftX = 48;
@@ -142,6 +188,7 @@ export async function generateQuotationPdf(quotation: QuotationDocumentData): Pr
     quotation.number,
     quotation.status
   );
+  await drawLogoIfAvailable(pdf, page, quotation.issuerLogoUrl);
 
   let y = 718;
   const leftX = 48;

@@ -18,7 +18,7 @@ import { formatPrice } from '@/lib/utils';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
 import { projectKeys } from '../api/queries';
 import type { Project } from '../api/types';
-import { PROJECT_STATUS_OPTIONS } from '../constants';
+import { PROJECT_MODE_OPTIONS, PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
 import { getQueryClient } from '@/lib/query-client';
 
@@ -83,6 +83,9 @@ export default function ProjectForm({
       clientId: initialData?.clientId ?? Number(clientOptions[0]?.value ?? 0),
       quotationId: initialData?.quotationId ?? null,
       status: initialData?.status ?? 'ACTIVE',
+      mode: initialData?.mode ?? 'CLIENT_DELIVERY',
+      agentStack: initialData?.agentStack ?? '',
+      playbookRefs: initialData?.playbookRefs ?? 'masterplan.md\nagent.md\nREADME.md',
       startDate: toDateInputValue(initialData?.startDate),
       endDate: toDateInputValue(initialData?.endDate),
       budget: initialData?.budget ?? null,
@@ -96,6 +99,8 @@ export default function ProjectForm({
         ...value,
         quotationId: value.quotationId === 0 ? null : normalizeOptionalNumber(value.quotationId),
         budget: normalizeOptionalNumber(value.budget),
+        agentStack: value.agentStack || null,
+        playbookRefs: value.playbookRefs || null,
         startDate: value.startDate || null,
         endDate: value.endDate || null,
         notes: value.notes || null
@@ -244,6 +249,21 @@ export default function ProjectForm({
               />
             </div>
 
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+              <FormSelectField
+                name='mode'
+                label='Project Mode'
+                required
+                options={PROJECT_MODE_OPTIONS}
+                placeholder='Select mode'
+              />
+              <FormTextField
+                name='agentStack'
+                label='Agent Stack'
+                placeholder='OpenClaw, Hermes, MCP set'
+              />
+            </div>
+
             {selectedQuotation ? (
               <div className='rounded-lg border bg-muted/30 p-4 text-sm'>
                 <div className='font-medium'>Linked quotation</div>
@@ -268,6 +288,13 @@ export default function ProjectForm({
               name='notes'
               label='Internal Notes'
               placeholder='Kickoff notes, scope reminders, or dependencies.'
+              rows={4}
+            />
+
+            <FormTextareaField
+              name='playbookRefs'
+              label='Playbook Files'
+              placeholder={'masterplan.md\nagent.md\nREADME.md'}
               rows={4}
             />
 

@@ -1,10 +1,13 @@
 export type Priority = 'low' | 'medium' | 'high';
 export type KanbanColumnKey = 'backlog' | 'todo' | 'inProgress' | 'review' | 'done';
+export type KanbanArtifactType = 'task' | 'masterplan' | 'agent_md' | 'readme' | 'doc' | 'note';
 
 export interface KanbanTask {
   id: number;
   title: string;
   description?: string;
+  artifactType: KanbanArtifactType;
+  artifactPath?: string;
   assignee?: string;
   priority: Priority;
   column: KanbanColumnKey;
@@ -20,6 +23,8 @@ export interface CreateKanbanTaskPayload {
   projectId?: number;
   title: string;
   description?: string;
+  artifactType?: KanbanArtifactType;
+  artifactPath?: string;
   assignee?: string;
   priority?: Priority;
 }
@@ -27,6 +32,8 @@ export interface CreateKanbanTaskPayload {
 export interface UpdateKanbanTaskPayload {
   title?: string;
   description?: string;
+  artifactType?: KanbanArtifactType;
+  artifactPath?: string;
   assignee?: string;
   priority?: Priority;
   column?: KanbanColumnKey;

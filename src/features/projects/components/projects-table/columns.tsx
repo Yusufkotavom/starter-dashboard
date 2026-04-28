@@ -9,6 +9,7 @@ import { buildProjectBoardHref } from '@/lib/project-progress';
 import { cn, formatPrice } from '@/lib/utils';
 import type { Project } from '../../api/types';
 import {
+  PROJECT_MODE_LABELS,
   PROJECT_STATUS_COLORS,
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_OPTIONS
@@ -32,6 +33,11 @@ export const columns: ColumnDef<Project>[] = [
         </Link>
         <div className='text-muted-foreground text-xs'>
           {row.original.clientCompany ?? row.original.clientName}
+        </div>
+        <div className='mt-1'>
+          <Badge variant='secondary' className='text-[10px]'>
+            {PROJECT_MODE_LABELS[row.original.mode] ?? row.original.mode}
+          </Badge>
         </div>
         <Link
           href={buildProjectBoardHref({

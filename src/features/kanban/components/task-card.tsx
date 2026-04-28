@@ -2,7 +2,16 @@
 
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
 import { KanbanItem, KanbanItemHandle } from '@/components/ui/kanban';
 import {
   Select,
@@ -14,6 +23,15 @@ import {
 import { cn } from '@/lib/utils';
 import { COLUMN_TITLES } from './board-column';
 import type { KanbanColumnKey, KanbanTask } from '../api/types';
+
+const artifactTypeLabel: Record<KanbanTask['artifactType'], string> = {
+  task: 'Task',
+  masterplan: 'Masterplan',
+  agent_md: 'agent.md',
+  readme: 'README',
+  doc: 'Document',
+  note: 'Note'
+};
 
 interface TaskCardProps extends Omit<React.ComponentProps<typeof KanbanItem>, 'value'> {
   task: KanbanTask;
@@ -47,6 +65,16 @@ export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) 
               {task.description ? (
                 <p className='text-muted-foreground line-clamp-2 text-xs'>{task.description}</p>
               ) : null}
+              <div className='flex flex-wrap items-center gap-1.5'>
+                <Badge variant='outline' className='h-5 rounded-sm px-1.5 text-[10px]'>
+                  {artifactTypeLabel[task.artifactType]}
+                </Badge>
+                {task.artifactPath ? (
+                  <span className='text-muted-foreground line-clamp-1 text-[10px]'>
+                    {task.artifactPath}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <Badge
               variant={
@@ -103,6 +131,48 @@ export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) 
               </button>
             </KanbanItemHandle>
           </div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant='ghost' size='sm' className='h-7 justify-start px-2 text-xs'>
+                Open detail
+              </Button>
+            </DialogTrigger>
+            <DialogContent className='sm:max-w-[560px]'>
+              <DialogHeader>
+                <DialogTitle>{task.title}</DialogTitle>
+                <DialogDescription>
+                  {artifactTypeLabel[task.artifactType]}
+                  {task.artifactPath ? ` · ${task.artifactPath}` : ''}
+                </DialogDescription>
+              </DialogHeader>
+              <div className='space-y-3 text-sm'>
+                <div className='rounded-md border p-3'>
+                  <div className='text-muted-foreground mb-1 text-xs'>Description</div>
+                  <div className='whitespace-pre-wrap'>
+                    {task.description?.trim() ? task.description : 'No description yet.'}
+                  </div>
+                </div>
+                <div className='grid gap-2 rounded-md border p-3 sm:grid-cols-2'>
+                  <div>
+                    <div className='text-muted-foreground text-xs'>Assignee</div>
+                    <div>{task.assignee || 'Unassigned'}</div>
+                  </div>
+                  <div>
+                    <div className='text-muted-foreground text-xs'>Priority</div>
+                    <div className='capitalize'>{task.priority}</div>
+                  </div>
+                  <div>
+                    <div className='text-muted-foreground text-xs'>Column</div>
+                    <div>{COLUMN_TITLES[column]}</div>
+                  </div>
+                  <div>
+                    <div className='text-muted-foreground text-xs'>Due Date</div>
+                    <div>{task.dueDate || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <div className='flex items-center gap-1 text-[11px]'>
             {column === 'backlog' ? (
               <span className='text-muted-foreground'>Todo</span>

@@ -19,7 +19,7 @@ import { projectKeys } from '../api/queries';
 import type { Project } from '../api/types';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
 import { quotationsQueryOptions } from '@/features/quotations/api/queries';
-import { PROJECT_STATUS_OPTIONS } from '../constants';
+import { PROJECT_MODE_OPTIONS, PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
 import { getQueryClient } from '@/lib/query-client';
 
@@ -85,6 +85,9 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
       clientId: project?.clientId ?? Number(clientOptions[0]?.value ?? 0),
       quotationId: project?.quotationId ?? null,
       status: project?.status ?? 'ACTIVE',
+      mode: project?.mode ?? 'CLIENT_DELIVERY',
+      agentStack: project?.agentStack ?? '',
+      playbookRefs: project?.playbookRefs ?? 'masterplan.md\nagent.md\nREADME.md',
       startDate: toDateInputValue(project?.startDate),
       endDate: toDateInputValue(project?.endDate),
       budget: project?.budget ?? null,
@@ -98,6 +101,8 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
         ...value,
         quotationId: value.quotationId === 0 ? null : normalizeOptionalNumber(value.quotationId),
         budget: normalizeOptionalNumber(value.budget),
+        agentStack: value.agentStack || null,
+        playbookRefs: value.playbookRefs || null,
         startDate: value.startDate || null,
         endDate: value.endDate || null,
         notes: value.notes || null
@@ -153,8 +158,22 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
                   placeholder='Select status'
                 />
 
+                <FormSelectField
+                  name='mode'
+                  label='Project Mode'
+                  required
+                  options={PROJECT_MODE_OPTIONS}
+                  placeholder='Select mode'
+                />
+
                 <FormTextField name='budget' label='Budget' type='number' placeholder='15000000' />
               </div>
+
+              <FormTextField
+                name='agentStack'
+                label='Agent Stack'
+                placeholder='OpenClaw, Hermes, MCP set'
+              />
 
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                 <FormTextField name='startDate' label='Start Date' type='date' />
@@ -172,6 +191,13 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
                 name='notes'
                 label='Internal Notes'
                 placeholder='Kickoff notes, scope reminders, or dependencies.'
+                rows={4}
+              />
+
+              <FormTextareaField
+                name='playbookRefs'
+                label='Playbook Files'
+                placeholder={'masterplan.md\nagent.md\nREADME.md'}
                 rows={4}
               />
             </form.Form>

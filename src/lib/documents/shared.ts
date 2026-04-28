@@ -199,6 +199,7 @@ export function buildDocumentLayout(args: {
   }>;
   options: DocumentRenderOptions;
   id: number;
+  logoUrl?: string | null;
 }): string {
   const { accessToken, autoPrint, origin } = args.options;
   const documentUrl = buildDocumentUrl(origin, args.kind, args.id, accessToken);
@@ -289,6 +290,15 @@ export function buildDocumentLayout(args: {
       .brand-top {
         display: grid;
         gap: 8px;
+      }
+      .brand-logo {
+        width: 58px;
+        height: 58px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        object-fit: contain;
+        padding: 6px;
       }
       .document-kicker {
         display: inline-flex;
@@ -607,16 +617,19 @@ export function buildDocumentLayout(args: {
   <body>
     <div class="shell">
       <div class="toolbar">
+        <a href="${escapeHtml(downloadUrl)}">Download PDF</a>
         <button type="button" onclick="window.print()">Print</button>
-        <a href="${escapeHtml(downloadUrl)}">Download HTML</a>
-        <a href="${escapeHtml(documentUrl)}" target="_blank" rel="noreferrer">Open Clean View</a>
-        <a href="${escapeHtml(printUrl)}" target="_blank" rel="noreferrer">Open Print View</a>
       </div>
       <article class="sheet">
         <div class="page">
           <header class="hero">
             <section class="brand-card">
               <div class="brand-top">
+                ${
+                  args.logoUrl
+                    ? `<img class="brand-logo" src="${escapeHtml(args.logoUrl)}" alt="Company logo" />`
+                    : ''
+                }
                 <span class="document-kicker">${escapeHtml(args.title)}</span>
                 <h1>${escapeHtml(args.number)}</h1>
                 <div class="number">${escapeHtml(args.title)} document</div>
@@ -731,7 +744,8 @@ export function buildDocumentLayout(args: {
               ${(
                 args.footerLines || [
                   `Generated from ${documentUrl}`,
-                  `Download copy: ${downloadUrl}`
+                  `PDF copy: ${downloadUrl}`,
+                  `Print view: ${printUrl}`
                 ]
               )
                 .map((line) => `<div>${escapeHtml(line)}</div>`)

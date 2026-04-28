@@ -1,6 +1,7 @@
 export interface AppSettings {
   companyName: string;
   companyEmail: string;
+  companyLogoUrl: string | null;
   defaultCurrency: string;
   invoicePrefix: string;
   quotationPrefix: string;

@@ -35,6 +35,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 import { OrgSwitcher } from '../org-switcher';
+import { CompanyBrand } from './company-brand';
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -51,6 +52,7 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
+        <CompanyBrand subtitle='Dashboard Workspace' />
         <OrgSwitcher />
       </SidebarHeader>
       <SidebarContent className='overflow-x-hidden'>

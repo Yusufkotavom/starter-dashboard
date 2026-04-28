@@ -1,4 +1,5 @@
 export type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
+export type ProjectMode = 'CLIENT_DELIVERY' | 'AGENT_PLAYGROUND';
 
 export interface Project {
   id: number;
@@ -10,6 +11,9 @@ export interface Project {
   quotationNumber: string | null;
   quotationTotal: number | null;
   status: ProjectStatus;
+  mode: ProjectMode;
+  agentStack: string | null;
+  playbookRefs: string | null;
   startDate: string | null;
   endDate: string | null;
   budget: number | null;
@@ -37,6 +41,9 @@ export interface ProjectMutationPayload {
   clientId: number;
   quotationId?: number | null;
   status: ProjectStatus;
+  mode?: ProjectMode;
+  agentStack?: string | null;
+  playbookRefs?: string | null;
   startDate?: string | null;
   endDate?: string | null;
   budget?: number | null;

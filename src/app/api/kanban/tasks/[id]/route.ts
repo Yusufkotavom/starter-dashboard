@@ -35,6 +35,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(typeof body.description === 'string'
         ? { description: body.description.trim() || null }
         : {}),
+      ...(typeof body.artifactType === 'string' ? { artifactType: body.artifactType } : {}),
+      ...(typeof body.artifactPath === 'string'
+        ? { artifactPath: body.artifactPath.trim() || null }
+        : {}),
       ...(typeof body.assignee === 'string' ? { assignee: body.assignee.trim() || null } : {}),
       ...(body.priority ? { priority: body.priority } : {}),
       ...(body.column ? { column: COLUMN_TO_DB[body.column] } : {}),

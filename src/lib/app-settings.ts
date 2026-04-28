@@ -7,6 +7,7 @@ const APP_SETTINGS_CACHE_TAG = 'app-settings';
 export interface AppSettingsSnapshot {
   companyName: string;
   companyEmail: string;
+  companyLogoUrl: string | null;
   defaultCurrency: string;
   invoicePrefix: string;
   quotationPrefix: string;
@@ -27,6 +28,7 @@ export interface AppSettingsSnapshot {
 export interface AppSettingsInput {
   companyName: string;
   companyEmail: string;
+  companyLogoUrl?: string | null;
   defaultCurrency: string;
   invoicePrefix: string;
   quotationPrefix: string;
@@ -53,6 +55,7 @@ export function getDefaultAppSettings(): AppSettingsSnapshot {
   return {
     companyName: 'Open Agency Studio',
     companyEmail: 'finance@openagency.test',
+    companyLogoUrl: null,
     defaultCurrency: 'IDR',
     invoicePrefix: 'INV',
     quotationPrefix: 'QUO',
@@ -74,6 +77,7 @@ export function getDefaultAppSettings(): AppSettingsSnapshot {
 export function mapAppSettingsRecord(record: {
   companyName: string;
   companyEmail: string;
+  companyLogoUrl: string | null;
   defaultCurrency: string;
   invoicePrefix: string;
   quotationPrefix: string;
@@ -93,6 +97,7 @@ export function mapAppSettingsRecord(record: {
   return {
     companyName: record.companyName,
     companyEmail: record.companyEmail,
+    companyLogoUrl: record.companyLogoUrl,
     defaultCurrency: record.defaultCurrency,
     invoicePrefix: record.invoicePrefix,
     quotationPrefix: record.quotationPrefix,
@@ -140,6 +145,7 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
       id: 1,
       companyName: input.companyName.trim(),
       companyEmail: input.companyEmail.trim(),
+      companyLogoUrl: normalizeOptional(input.companyLogoUrl),
       defaultCurrency: input.defaultCurrency.trim().toUpperCase(),
       invoicePrefix: input.invoicePrefix.trim().toUpperCase(),
       quotationPrefix: input.quotationPrefix.trim().toUpperCase(),
@@ -159,6 +165,7 @@ export async function saveAppSettings(input: AppSettingsInput): Promise<AppSetti
     update: {
       companyName: input.companyName.trim(),
       companyEmail: input.companyEmail.trim(),
+      companyLogoUrl: normalizeOptional(input.companyLogoUrl),
       defaultCurrency: input.defaultCurrency.trim().toUpperCase(),
       invoicePrefix: input.invoicePrefix.trim().toUpperCase(),
       quotationPrefix: input.quotationPrefix.trim().toUpperCase(),

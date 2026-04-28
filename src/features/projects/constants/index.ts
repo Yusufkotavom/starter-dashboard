@@ -5,6 +5,16 @@ export const PROJECT_STATUS_OPTIONS = [
   { value: 'CANCELLED', label: 'Cancelled' }
 ] as const;
 
+export const PROJECT_MODE_OPTIONS = [
+  { value: 'CLIENT_DELIVERY', label: 'Client Delivery' },
+  { value: 'AGENT_PLAYGROUND', label: 'Agent Playground' }
+] as const;
+
+export const PROJECT_MODE_LABELS: Record<string, string> = {
+  CLIENT_DELIVERY: 'Client Delivery',
+  AGENT_PLAYGROUND: 'Agent Playground'
+};
+
 export const PROJECT_STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'text-emerald-700 bg-emerald-50 border-emerald-200',
   COMPLETED: 'text-sky-700 bg-sky-50 border-sky-200',

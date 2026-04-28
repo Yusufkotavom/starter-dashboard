@@ -34,17 +34,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'name is required' }, { status: 400 });
   }
 
-  const result = await createIntegrationApiKey({
-    name: body.name,
-    scopes: Array.isArray(body.scopes) && body.scopes.length > 0 ? body.scopes : ['*'],
-    organizationId: activeOrganizationId
-  });
+  try {
+    const result = await createIntegrationApiKey({
+      name: body.name,
+      scopes: Array.isArray(body.scopes) && body.scopes.length > 0 ? body.scopes : ['*'],
+      organizationId: activeOrganizationId
+    });
 
-  return NextResponse.json(
-    {
-      key: result.key,
-      record: result.record
-    },
-    { status: 201 }
-  );
+    return NextResponse.json(
+      {
+        key: result.key,
+        record: result.record
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('INVALID_SCOPES:')) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ message: 'Failed to create integration key' }, { status: 500 });
+  }
 }
