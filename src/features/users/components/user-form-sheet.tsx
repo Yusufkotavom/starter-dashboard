@@ -14,11 +14,13 @@ import {
 import { Icons } from '@/components/icons';
 import { useMutation } from '@tanstack/react-query';
 import { createUserMutation, updateUserMutation } from '../api/mutations';
+import { userKeys } from '../api/queries';
 import type { User } from '../api/types';
 import { toast } from 'sonner';
 import * as z from 'zod';
 import { userSchema, type UserFormValues } from '../schemas/user';
 import { ROLE_OPTIONS } from './users-table/options';
+import { getQueryClient } from '@/lib/query-client';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -38,6 +40,7 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const createMutation = useMutation({
     ...createUserMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: userKeys.all });
       toast.success('User created successfully');
       onOpenChange(false);
       form.reset();
@@ -48,6 +51,7 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const updateMutation = useMutation({
     ...updateUserMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: userKeys.all });
       toast.success('User updated successfully');
       onOpenChange(false);
     },

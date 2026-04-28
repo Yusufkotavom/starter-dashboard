@@ -4,12 +4,14 @@ import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createCategoryMutation, updateCategoryMutation } from '../api/mutations';
+import { categoryKeys } from '../api/queries';
 import type { Category } from '../api/types';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import * as z from 'zod';
 import { categorySchema, type CategoryFormValues } from '@/features/categories/schemas/category';
+import { getQueryClient } from '@/lib/query-client';
 
 export default function CategoryForm({
   initialData,
@@ -24,6 +26,7 @@ export default function CategoryForm({
   const createMutation = useMutation({
     ...createCategoryMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: categoryKeys.all });
       toast.success('Category created successfully');
       router.push('/dashboard/categories');
     },
@@ -35,6 +38,7 @@ export default function CategoryForm({
   const updateMutation = useMutation({
     ...updateCategoryMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: categoryKeys.all });
       toast.success('Category updated successfully');
       router.push('/dashboard/categories');
     },

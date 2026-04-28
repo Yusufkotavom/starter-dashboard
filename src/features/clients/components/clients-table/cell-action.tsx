@@ -9,12 +9,14 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { deleteClientMutation } from '../../api/mutations';
+import { clientKeys } from '../../api/queries';
 import type { Client } from '../../api/types';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ClientFormSheet } from '../client-form-sheet';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Client;
@@ -27,6 +29,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteClientMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientKeys.all });
       toast.success('Client deleted successfully');
       setDeleteOpen(false);
     },

@@ -12,9 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { categoriesQueryOptions } from '@/features/categories/api/queries';
 import { createProductMutation, updateProductMutation } from '../api/mutations';
+import { productKeys } from '../api/queries';
 import type { Product } from '../api/types';
 import { productSchema, type ProductFormValues } from '@/features/products/schemas/product';
 import type { SubscriptionInterval } from '@/features/subscriptions/api/types';
+import { subscriptionPlanKeys } from '@/features/subscriptions/api/queries';
+import { getQueryClient } from '@/lib/query-client';
 
 type ProductPlanDraft = NonNullable<Product['subscriptionPlans']>[number];
 
@@ -76,6 +79,8 @@ export default function ProductForm({
   const createMutation = useMutation({
     ...createProductMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: productKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
       toast.success('Product created successfully');
       router.push('/dashboard/product');
     },
@@ -87,6 +92,8 @@ export default function ProductForm({
   const updateMutation = useMutation({
     ...updateProductMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: productKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
       toast.success('Product updated successfully');
       router.push('/dashboard/product');
     },

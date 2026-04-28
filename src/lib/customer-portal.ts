@@ -167,6 +167,7 @@ const portalDigitalAccessInvoiceSelect = {
               description: true,
               product: {
                 select: {
+                  id: true,
                   name: true,
                   isDigital: true,
                   deliveryUrl: true
@@ -180,11 +181,13 @@ const portalDigitalAccessInvoiceSelect = {
   },
   subscription: {
     select: {
+      id: true,
       plan: {
         select: {
           name: true,
           service: {
             select: {
+              id: true,
               name: true,
               isDigital: true,
               deliveryUrl: true
@@ -231,11 +234,38 @@ export interface PortalPagedResult<T> {
 
 export interface PortalDigitalAccessItem {
   key: string;
-  invoiceId: number;
-  invoiceNumber: string;
+  productId: number | null;
+  sourceType: 'invoice' | 'quotation' | 'subscription';
+  sourceId: number;
+  sourceNumber: string;
+  sourcePath: string;
   title: string;
   subtitle: string;
-  deliveryUrl: string;
+  deliveryUrl: string | null;
+  isDigital: boolean;
+}
+
+export interface PortalMyProductDetailSource {
+  sourceType: 'invoice' | 'quotation' | 'subscription';
+  sourceId: number;
+  sourceNumber: string;
+  sourcePath: string;
+  label: string;
+}
+
+export interface PortalMyProductDetailData {
+  client: PortalClientSummary;
+  product: {
+    id: number;
+    name: string;
+    description: string;
+    type: 'PRODUCT' | 'SERVICE';
+    isDigital: boolean;
+    deliveryUrl: string | null;
+    price: number;
+    unit: string;
+  };
+  sources: PortalMyProductDetailSource[];
 }
 
 function normalizePortalPage(page: number | string | undefined): number {
@@ -593,42 +623,33 @@ export async function getPortalDigitalAccessPageData(
   const page = normalizePortalPage(pageInput);
   const skip = (page - 1) * PORTAL_PAGE_SIZE;
 
-  const [invoices, clientSummary] = await Promise.all([
+  const [invoices, quotations, clientSummary] = await Promise.all([
     prisma.invoice.findMany({
-      where: {
-        clientId: client.id,
-        OR: [
-          {
-            project: {
-              quotation: {
-                items: {
-                  some: {
-                    product: {
-                      isDigital: true,
-                      NOT: {
-                        deliveryUrl: null
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          {
-            subscription: {
-              plan: {
-                service: {
-                  isDigital: true,
-                  NOT: {
-                    deliveryUrl: null
-                  }
-                }
+      where: { clientId: client.id },
+      select: portalDigitalAccessInvoiceSelect,
+      orderBy: { createdAt: 'desc' }
+    }),
+    prisma.quotation.findMany({
+      where: { clientId: client.id },
+      select: {
+        id: true,
+        number: true,
+        items: {
+          select: {
+            id: true,
+            description: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                isDigital: true,
+                deliveryUrl: true,
+                type: true
               }
             }
           }
-        ]
+        }
       },
-      select: portalDigitalAccessInvoiceSelect,
       orderBy: { createdAt: 'desc' }
     }),
     prisma.client.findUnique({
@@ -641,35 +662,61 @@ export async function getPortalDigitalAccessPageData(
     return null;
   }
 
-  const allItems = invoices.flatMap((invoice) => {
+  const invoiceItems = invoices.flatMap((invoice) => {
     const projectItems =
-      invoice.project?.quotation?.items
-        .filter((item) => item.product?.isDigital && item.product.deliveryUrl)
+      (invoice.project?.quotation?.items ?? [])
+        .filter((item) => item.product)
         .map((item) => ({
           key: `invoice-${invoice.id}-item-${item.id}`,
-          invoiceId: invoice.id,
-          invoiceNumber: invoice.number,
+          productId: item.product?.id ?? null,
+          sourceType: 'invoice' as const,
+          sourceId: invoice.id,
+          sourceNumber: invoice.number,
+          sourcePath: `/portal/invoices/${invoice.id}`,
           title: item.description,
-          subtitle: item.product?.name ?? 'Digital item',
-          deliveryUrl: item.product?.deliveryUrl ?? ''
+          subtitle: item.product?.name ?? 'Product / Service',
+          deliveryUrl: item.product?.deliveryUrl ?? null,
+          isDigital: !!item.product?.isDigital
         })) ?? [];
 
-    const subscriptionItem =
-      invoice.subscription?.plan.service?.isDigital && invoice.subscription.plan.service.deliveryUrl
-        ? [
-            {
-              key: `invoice-${invoice.id}-subscription`,
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.number,
-              title: invoice.subscription.plan.name,
-              subtitle: invoice.subscription.plan.service.name,
-              deliveryUrl: invoice.subscription.plan.service.deliveryUrl
-            }
-          ]
-        : [];
+    const subscriptionItem = invoice.subscription?.plan.service
+      ? [
+          {
+            key: `invoice-${invoice.id}-subscription`,
+            productId: invoice.subscription.plan.service?.id ?? null,
+            sourceType: 'subscription' as const,
+            sourceId: invoice.subscription.id,
+            sourceNumber: invoice.number,
+            sourcePath: `/portal/invoices/${invoice.id}`,
+            title: invoice.subscription.plan.name,
+            subtitle: invoice.subscription.plan.service.name,
+            deliveryUrl: invoice.subscription.plan.service.deliveryUrl ?? null,
+            isDigital: !!invoice.subscription.plan.service.isDigital
+          }
+        ]
+      : [];
 
     return [...projectItems, ...subscriptionItem];
   });
+
+  const quotationItems = quotations.flatMap((quotation) =>
+    (quotation.items ?? [])
+      .filter((item) => item.product)
+      .map((item) => ({
+        key: `quotation-${quotation.id}-item-${item.id}`,
+        productId: item.product?.id ?? null,
+        sourceType: 'quotation' as const,
+        sourceId: quotation.id,
+        sourceNumber: quotation.number,
+        sourcePath: `/portal/quotations/${quotation.id}`,
+        title: item.description,
+        subtitle: item.product?.name ?? 'Product / Service',
+        deliveryUrl: item.product?.deliveryUrl ?? null,
+        isDigital: !!item.product?.isDigital
+      }))
+  );
+
+  const allItems = [...invoiceItems, ...quotationItems];
 
   const totalItems = allItems.length;
   const items = allItems.slice(skip, skip + PORTAL_PAGE_SIZE);
@@ -678,6 +725,147 @@ export async function getPortalDigitalAccessPageData(
     client: clientSummary,
     items,
     pagination: buildPortalPaginationMeta(totalItems, page)
+  };
+}
+
+export async function getPortalMyProductDetail(
+  productIdInput: number | string
+): Promise<PortalMyProductDetailData | null> {
+  const { client } = await getPortalClientOrThrow();
+  const productId =
+    typeof productIdInput === 'string' ? Number.parseInt(productIdInput, 10) : productIdInput;
+
+  if (!Number.isFinite(productId) || productId <= 0) {
+    return null;
+  }
+
+  const [clientSummary, product, quotations, subscriptions] = await Promise.all([
+    prisma.client.findUnique({
+      where: { id: client.id },
+      select: portalClientSummarySelect
+    }),
+    prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        isDigital: true,
+        deliveryUrl: true,
+        price: true,
+        unit: true
+      }
+    }),
+    prisma.quotation.findMany({
+      where: {
+        clientId: client.id,
+        items: {
+          some: {
+            productId
+          }
+        }
+      },
+      select: {
+        id: true,
+        number: true,
+        project: {
+          select: {
+            id: true,
+            invoices: {
+              select: {
+                id: true,
+                number: true
+              },
+              orderBy: {
+                createdAt: 'desc'
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    }),
+    prisma.clientSubscription.findMany({
+      where: {
+        clientId: client.id,
+        plan: {
+          serviceId: productId
+        }
+      },
+      select: {
+        id: true,
+        invoices: {
+          select: {
+            id: true,
+            number: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+  ]);
+
+  if (!clientSummary || !product) {
+    return null;
+  }
+
+  const sourceMap = new Map<string, PortalMyProductDetailSource>();
+
+  for (const quotation of quotations) {
+    sourceMap.set(`quotation-${quotation.id}`, {
+      sourceType: 'quotation',
+      sourceId: quotation.id,
+      sourceNumber: quotation.number,
+      sourcePath: `/portal/quotations/${quotation.id}`,
+      label: `Quotation ${quotation.number}`
+    });
+
+    for (const invoice of quotation.project?.invoices ?? []) {
+      sourceMap.set(`invoice-${invoice.id}`, {
+        sourceType: 'invoice',
+        sourceId: invoice.id,
+        sourceNumber: invoice.number,
+        sourcePath: `/portal/invoices/${invoice.id}`,
+        label: `Invoice ${invoice.number}`
+      });
+    }
+  }
+
+  for (const subscription of subscriptions) {
+    for (const invoice of subscription.invoices) {
+      sourceMap.set(`invoice-${invoice.id}`, {
+        sourceType: 'invoice',
+        sourceId: invoice.id,
+        sourceNumber: invoice.number,
+        sourcePath: `/portal/invoices/${invoice.id}`,
+        label: `Invoice ${invoice.number}`
+      });
+    }
+  }
+
+  const sources = Array.from(sourceMap.values()).toSorted((a, b) => a.label.localeCompare(b.label));
+
+  return {
+    client: clientSummary,
+    product: {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      type: product.type,
+      isDigital: product.isDigital,
+      deliveryUrl: product.deliveryUrl,
+      price: Number(product.price),
+      unit: product.unit
+    },
+    sources
   };
 }
 

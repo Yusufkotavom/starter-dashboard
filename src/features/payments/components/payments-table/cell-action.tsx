@@ -15,7 +15,9 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { deletePaymentMutation } from '../../api/mutations';
+import { paymentKeys } from '../../api/queries';
 import type { Payment } from '../../api/types';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Payment;
@@ -28,6 +30,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deletePaymentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: paymentKeys.all });
       toast.success('Payment deleted successfully');
       setDeleteOpen(false);
     },

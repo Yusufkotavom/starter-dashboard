@@ -14,10 +14,12 @@ import {
 import { Icons } from '@/components/icons';
 import { useMutation } from '@tanstack/react-query';
 import { createClientMutation, updateClientMutation } from '../api/mutations';
+import { clientKeys } from '../api/queries';
 import type { Client } from '../api/types';
 import { toast } from 'sonner';
 import { clientSchema, type ClientFormValues } from '../schemas/client';
 import { CLIENT_STATUS_OPTIONS } from '../constants';
+import { getQueryClient } from '@/lib/query-client';
 
 interface ClientFormSheetProps {
   client?: Client;
@@ -31,6 +33,7 @@ export function ClientFormSheet({ client, open, onOpenChange }: ClientFormSheetP
   const createMutation = useMutation({
     ...createClientMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientKeys.all });
       toast.success('Client created successfully');
       onOpenChange(false);
       form.reset();
@@ -41,6 +44,7 @@ export function ClientFormSheet({ client, open, onOpenChange }: ClientFormSheetP
   const updateMutation = useMutation({
     ...updateClientMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientKeys.all });
       toast.success('Client updated successfully');
       onOpenChange(false);
     },

@@ -264,6 +264,7 @@ model Project {
   invoices    Invoice[]
   expenses    Expense[]
   subscriptions ClientSubscription[]
+  kanbanTasks KanbanTask[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -277,6 +278,33 @@ enum ProjectStatus {
   COMPLETED
   PAUSED
   CANCELLED
+}
+
+enum KanbanColumn {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+model KanbanTask {
+  id             Int          @id @default(autoincrement())
+  organizationId String?
+  projectId      Int?
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  title          String
+  description    String?
+  assignee       String?
+  priority       String       @default("medium")
+  column         KanbanColumn @default(BACKLOG)
+  orderIndex     Int          @default(0)
+  dueDate        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, projectId, column, orderIndex])
+  @@index([projectId, column, orderIndex])
 }
 
 // ─── Finance ────────────────────────────────────────────────────────

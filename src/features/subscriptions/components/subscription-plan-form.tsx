@@ -10,12 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { productsQueryOptions } from '@/features/products/api/queries';
 import { createSubscriptionPlanMutation, updateSubscriptionPlanMutation } from '../api/mutations';
+import { clientSubscriptionKeys, subscriptionPlanKeys } from '../api/queries';
 import type { SubscriptionPlan } from '../api/types';
 import { SUBSCRIPTION_INTERVAL_OPTIONS } from '../constants';
 import {
   subscriptionPlanSchema,
   type SubscriptionPlanFormValues
 } from '../schemas/subscription-plan';
+import { getQueryClient } from '@/lib/query-client';
 
 function slugify(value: string): string {
   return value
@@ -48,6 +50,8 @@ export default function SubscriptionPlanForm({
   const createMutation = useMutation({
     ...createSubscriptionPlanMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: clientSubscriptionKeys.all });
       toast.success('Subscription plan created');
       router.push('/dashboard/subscriptions');
       router.refresh();
@@ -60,6 +64,8 @@ export default function SubscriptionPlanForm({
   const updateMutation = useMutation({
     ...updateSubscriptionPlanMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: clientSubscriptionKeys.all });
       toast.success('Subscription plan updated');
       router.push('/dashboard/subscriptions');
       router.refresh();

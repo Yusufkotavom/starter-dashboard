@@ -11,7 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
 import { deleteClientSubscriptionMutation, deleteSubscriptionPlanMutation } from '../api/mutations';
-import { clientSubscriptionsQueryOptions, subscriptionPlansQueryOptions } from '../api/queries';
+import {
+  clientSubscriptionKeys,
+  clientSubscriptionsQueryOptions,
+  subscriptionPlanKeys,
+  subscriptionPlansQueryOptions
+} from '../api/queries';
+import { getQueryClient } from '@/lib/query-client';
 
 const PLAN_FILTERS = { page: 1, limit: 100 };
 const SUBSCRIPTION_FILTERS = { page: 1, limit: 100 };
@@ -52,6 +58,7 @@ export function SubscriptionsOverview() {
   const deletePlan = useMutation({
     ...deleteSubscriptionPlanMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
       toast.success('Subscription plan deleted');
       setPlanToDelete(null);
     },
@@ -63,6 +70,7 @@ export function SubscriptionsOverview() {
   const deleteSubscription = useMutation({
     ...deleteClientSubscriptionMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientSubscriptionKeys.all });
       toast.success('Client subscription deleted');
       setSubscriptionToDelete(null);
     },

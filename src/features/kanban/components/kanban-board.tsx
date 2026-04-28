@@ -1,23 +1,87 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Kanban, KanbanBoard as KanbanBoardPrimitive, KanbanOverlay } from '@/components/ui/kanban';
-import { useTaskStore, type KanbanColumnKey } from '../utils/store';
+import { kanbanBoardQueryOptions } from '../api/queries';
+import { reorderKanbanTasksMutation } from '../api/mutations';
+import type { KanbanColumnKey, KanbanTask } from '../api/types';
 import { COLUMN_TITLES, TaskColumn } from './board-column';
 import { TaskCard } from './task-card';
 import { createRestrictToContainer } from '../utils/restrict-to-container';
 
 interface KanbanBoardProps {
   fullScreen?: boolean;
+  projectId?: number;
 }
 
-export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
-  const { columns, setColumns } = useTaskStore();
+function getEmptyColumns(): Record<KanbanColumnKey, KanbanTask[]> {
+  return {
+    backlog: [],
+    todo: [],
+    inProgress: [],
+    review: [],
+    done: []
+  };
+}
+
+function moveTaskLocally(
+  current: Record<KanbanColumnKey, KanbanTask[]>,
+  taskId: number,
+  targetColumn: KanbanColumnKey
+) {
+  const nextColumns: Record<KanbanColumnKey, KanbanTask[]> = {
+    backlog: [...current.backlog],
+    todo: [...current.todo],
+    inProgress: [...current.inProgress],
+    review: [...current.review],
+    done: [...current.done]
+  };
+
+  let taskToMove: KanbanTask | null = null;
+  for (const columnKey of Object.keys(nextColumns) as KanbanColumnKey[]) {
+    const index = nextColumns[columnKey].findIndex((task) => task.id === taskId);
+    if (index !== -1) {
+      const [task] = nextColumns[columnKey].splice(index, 1);
+      taskToMove = task;
+      break;
+    }
+  }
+
+  if (!taskToMove) {
+    return nextColumns;
+  }
+
+  nextColumns[targetColumn].unshift({ ...taskToMove, column: targetColumn });
+  return nextColumns;
+}
+
+function buildReorderColumnsPayload(columns: Record<KanbanColumnKey, KanbanTask[]>) {
+  return {
+    backlog: columns.backlog.map((task) => ({ id: task.id })),
+    todo: columns.todo.map((task) => ({ id: task.id })),
+    inProgress: columns.inProgress.map((task) => ({ id: task.id })),
+    review: columns.review.map((task) => ({ id: task.id })),
+    done: columns.done.map((task) => ({ id: task.id }))
+  };
+}
+
+export function KanbanBoard({ fullScreen = false, projectId }: KanbanBoardProps) {
+  const { data } = useQuery(kanbanBoardQueryOptions(projectId));
+  const reorderMutation = useMutation(reorderKanbanTasksMutation);
+  const [columns, setColumns] = useState<Record<KanbanColumnKey, KanbanTask[]>>(getEmptyColumns);
   const [activeColumn, setActiveColumn] = useState<KanbanColumnKey>('backlog');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (data?.columns) {
+      setColumns(data.columns);
+    }
+  }, [data]);
+
   const columnEntries = useMemo(
     () => Object.entries(columns) as [KanbanColumnKey, (typeof columns)[KanbanColumnKey]][],
     [columns]
@@ -31,6 +95,35 @@ export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
   const restrictToBoard = useCallback(
     createRestrictToContainer(() => containerRef.current),
     []
+  );
+
+  const persistReorder = useCallback(
+    (nextColumns: Record<KanbanColumnKey, KanbanTask[]>) => {
+      reorderMutation.mutate({
+        projectId,
+        columns: buildReorderColumnsPayload(nextColumns)
+      });
+    },
+    [projectId, reorderMutation]
+  );
+
+  const handleMoveTask = useCallback(
+    (taskId: number, targetColumn: KanbanColumnKey) => {
+      setColumns((current) => {
+        const nextColumns = moveTaskLocally(current, taskId, targetColumn);
+        persistReorder(nextColumns);
+        return nextColumns;
+      });
+    },
+    [persistReorder]
+  );
+
+  const handleColumnsChange = useCallback(
+    (nextColumns: Record<KanbanColumnKey, KanbanTask[]>) => {
+      setColumns(nextColumns);
+      persistReorder(nextColumns);
+    },
+    [persistReorder]
   );
 
   return (
@@ -57,8 +150,8 @@ export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
 
       <Kanban
         value={columns}
-        onValueChange={setColumns}
-        getItemValue={(item) => item.id}
+        onValueChange={handleColumnsChange}
+        getItemValue={(item) => String(item.id)}
         modifiers={[restrictToBoard]}
         autoScroll={false}
       >
@@ -73,7 +166,12 @@ export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
               className={cn('flex min-h-full items-start gap-3', fullScreen && 'h-full')}
             >
               {mobileColumnEntries.map(([columnValue, tasks]) => (
-                <TaskColumn key={columnValue} value={columnValue} tasks={tasks} />
+                <TaskColumn
+                  key={columnValue}
+                  value={columnValue}
+                  tasks={tasks}
+                  onMoveTask={handleMoveTask}
+                />
               ))}
             </KanbanBoardPrimitive>
           </ScrollArea>
@@ -92,7 +190,12 @@ export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
               )}
             >
               {columnEntries.map(([columnValue, tasks]) => (
-                <TaskColumn key={columnValue} value={columnValue} tasks={tasks} />
+                <TaskColumn
+                  key={columnValue}
+                  value={columnValue}
+                  tasks={tasks}
+                  onMoveTask={handleMoveTask}
+                />
               ))}
             </KanbanBoardPrimitive>
             <ScrollBar orientation='horizontal' />
@@ -103,19 +206,20 @@ export function KanbanBoard({ fullScreen = false }: KanbanBoardProps) {
             if (variant === 'column') {
               const columnKey = value as KanbanColumnKey;
               const tasks = columns[columnKey] ?? [];
-              return <TaskColumn value={columnKey} tasks={tasks} />;
+              return <TaskColumn value={columnKey} tasks={tasks} onMoveTask={handleMoveTask} />;
             }
 
+            const numericValue = Number(value);
             const task = Object.values(columns)
               .flat()
-              .find((task) => task.id === value);
+              .find((task) => task.id === numericValue);
 
             if (!task) return null;
             const column = columnEntries.find(([, items]) =>
-              items.some((columnTask) => columnTask.id === value)
+              items.some((columnTask) => columnTask.id === numericValue)
             )?.[0];
             if (!column) return null;
-            return <TaskCard task={task} column={column} />;
+            return <TaskCard task={task} column={column} onMoveTask={handleMoveTask} />;
           }}
         </KanbanOverlay>
       </Kanban>

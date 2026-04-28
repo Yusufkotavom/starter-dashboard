@@ -15,10 +15,12 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { createExpenseMutation, updateExpenseMutation } from '../api/mutations';
+import { expenseKeys } from '../api/queries';
 import type { Expense } from '../api/types';
 import { projectsQueryOptions } from '@/features/projects/api/queries';
 import { EXPENSE_CATEGORY_OPTIONS } from '../constants';
 import { expenseSchema, type ExpenseFormValues } from '../schemas/expense';
+import { getQueryClient } from '@/lib/query-client';
 
 interface ExpenseFormSheetProps {
   expense?: Expense;
@@ -44,6 +46,7 @@ export function ExpenseFormSheet({ expense, open, onOpenChange }: ExpenseFormShe
   const createMutation = useMutation({
     ...createExpenseMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: expenseKeys.all });
       toast.success('Expense recorded successfully');
       onOpenChange(false);
       form.reset();
@@ -54,6 +57,7 @@ export function ExpenseFormSheet({ expense, open, onOpenChange }: ExpenseFormShe
   const updateMutation = useMutation({
     ...updateExpenseMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: expenseKeys.all });
       toast.success('Expense updated successfully');
       onOpenChange(false);
     },

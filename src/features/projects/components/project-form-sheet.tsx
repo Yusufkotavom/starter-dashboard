@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
+import { projectKeys } from '../api/queries';
 import type { Project } from '../api/types';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
 import { quotationsQueryOptions } from '@/features/quotations/api/queries';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
+import { getQueryClient } from '@/lib/query-client';
 
 interface ProjectFormSheetProps {
   project?: Project;
@@ -55,6 +57,7 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
   const createMutation = useMutation({
     ...createProjectMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: projectKeys.all });
       toast.success('Project created successfully');
       onOpenChange(false);
       form.reset();
@@ -67,6 +70,7 @@ export function ProjectFormSheet({ project, open, onOpenChange }: ProjectFormShe
   const updateMutation = useMutation({
     ...updateProjectMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: projectKeys.all });
       toast.success('Project updated successfully');
       onOpenChange(false);
     },

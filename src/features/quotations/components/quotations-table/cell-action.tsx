@@ -22,7 +22,9 @@ import {
   sendQuotationMutation,
   sendQuotationViaWhatsAppMutation
 } from '../../api/mutations';
+import { quotationKeys } from '../../api/queries';
 import type { Quotation } from '../../api/types';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Quotation;
@@ -37,6 +39,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteQuotationMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: quotationKeys.all });
       toast.success('Quotation deleted successfully');
       setDeleteOpen(false);
     },
@@ -46,6 +49,7 @@ export function CellAction({ data }: CellActionProps) {
   const sendMutation = useMutation({
     ...sendQuotationMutation,
     onSuccess: (result) => {
+      getQueryClient().invalidateQueries({ queryKey: quotationKeys.all });
       toast.success(`Quotation sent via ${result.provider}`);
     },
     onError: () => toast.error('Failed to send quotation')
@@ -54,6 +58,7 @@ export function CellAction({ data }: CellActionProps) {
   const sendWhatsAppMutation = useMutation({
     ...sendQuotationViaWhatsAppMutation,
     onSuccess: (result) => {
+      getQueryClient().invalidateQueries({ queryKey: quotationKeys.all });
       toast.success(`Quotation sent via WhatsApp (${result.provider})`);
       if (result.conversationId) {
         router.push(`/dashboard/communications/${result.conversationId}`);
@@ -67,6 +72,7 @@ export function CellAction({ data }: CellActionProps) {
   const markSentMutation = useMutation({
     ...markQuotationAsSentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: quotationKeys.all });
       toast.success('Quotation marked as sent');
     },
     onError: () => toast.error('Failed to mark quotation as sent')
@@ -75,6 +81,7 @@ export function CellAction({ data }: CellActionProps) {
   const approveMutation = useMutation({
     ...approveQuotationMutation,
     onSuccess: (result) => {
+      getQueryClient().invalidateQueries({ queryKey: quotationKeys.all });
       toast.success(`Quotation approved. Draft invoice ${result.invoiceNumber} created`);
       router.push(`/dashboard/invoices/${result.invoiceId}`);
     },

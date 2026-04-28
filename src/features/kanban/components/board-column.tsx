@@ -4,7 +4,7 @@ import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { KanbanColumn, KanbanColumnHandle } from '@/components/ui/kanban';
-import type { KanbanColumnKey, Task } from '../utils/store';
+import type { KanbanColumnKey, KanbanTask } from '../api/types';
 import { TaskCard } from './task-card';
 
 export const COLUMN_TITLES: Record<KanbanColumnKey, string> = {
@@ -16,10 +16,11 @@ export const COLUMN_TITLES: Record<KanbanColumnKey, string> = {
 };
 
 interface TaskColumnProps extends Omit<React.ComponentProps<typeof KanbanColumn>, 'children'> {
-  tasks: Task[];
+  tasks: KanbanTask[];
+  onMoveTask: (taskId: number, targetColumn: KanbanColumnKey) => void;
 }
 
-export function TaskColumn({ value, tasks, ...props }: TaskColumnProps) {
+export function TaskColumn({ value, tasks, onMoveTask, ...props }: TaskColumnProps) {
   const columnKey = value as KanbanColumnKey;
 
   return (
@@ -43,7 +44,7 @@ export function TaskColumn({ value, tasks, ...props }: TaskColumnProps) {
       </div>
       <div className='mt-1 flex flex-1 flex-col gap-2 overflow-y-auto pr-0.5'>
         {tasks.map((task) => {
-          return <TaskCard key={task.id} task={task} column={columnKey} />;
+          return <TaskCard key={task.id} task={task} column={columnKey} onMoveTask={onMoveTask} />;
         })}
       </div>
     </KanbanColumn>

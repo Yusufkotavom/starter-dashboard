@@ -33,6 +33,8 @@ function buildKanbanHref(context: KanbanViewPageProps['context'], compact: boole
 
 export default function KanbanViewPage({ context, compact = false }: KanbanViewPageProps) {
   const hasProjectContext = !!context?.projectId || !!context?.projectName;
+  const parsedProjectId = context?.projectId ? Number(context.projectId) : NaN;
+  const projectId = Number.isFinite(parsedProjectId) ? parsedProjectId : undefined;
   const normalHref = buildKanbanHref(context, false);
   const compactHref = buildKanbanHref(context, true);
   const toggleCompactHref = compact ? normalHref : compactHref;
@@ -73,7 +75,7 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
               </Link>
             </Button>
           ) : null}
-          <NewTaskDialog />
+          <NewTaskDialog projectId={projectId} />
         </div>
       }
     >
@@ -103,7 +105,7 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
         </div>
       ) : null}
 
-      <KanbanBoard fullScreen={compact} />
+      <KanbanBoard fullScreen={compact} projectId={projectId} />
     </PageContainer>
   );
 }

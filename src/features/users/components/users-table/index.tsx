@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
@@ -7,11 +8,15 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
 import { usersQueryOptions } from '../../api/queries';
+import type { User } from '../../api/types';
+import { UserFormSheet } from '../user-form-sheet';
 import { columns } from './columns';
 
 const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
 
 export function UsersTable() {
+  const [activeUser, setActiveUser] = useState<User | undefined>(undefined);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -44,9 +49,18 @@ export function UsersTable() {
   });
 
   return (
-    <DataTable table={table}>
-      <DataTableToolbar table={table} />
-    </DataTable>
+    <>
+      <DataTable
+        table={table}
+        onRowClick={(row) => {
+          setActiveUser(row);
+          setIsSheetOpen(true);
+        }}
+      >
+        <DataTableToolbar table={table} />
+      </DataTable>
+      <UserFormSheet user={activeUser} open={isSheetOpen} onOpenChange={setIsSheetOpen} />
+    </>
   );
 }
 

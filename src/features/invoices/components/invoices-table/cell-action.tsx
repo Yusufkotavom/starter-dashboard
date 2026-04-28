@@ -22,7 +22,9 @@ import {
   sendInvoiceMutation,
   sendInvoiceViaWhatsAppMutation
 } from '../../api/mutations';
+import { invoiceKeys } from '../../api/queries';
 import type { Invoice } from '../../api/types';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Invoice;
@@ -37,6 +39,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteInvoiceMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success('Invoice deleted successfully');
       setDeleteOpen(false);
     },
@@ -46,6 +49,7 @@ export function CellAction({ data }: CellActionProps) {
   const sendMutation = useMutation({
     ...sendInvoiceMutation,
     onSuccess: (result) => {
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success(`Invoice sent via ${result.provider}`);
     },
     onError: () => toast.error('Failed to send invoice')
@@ -54,6 +58,7 @@ export function CellAction({ data }: CellActionProps) {
   const sendWhatsAppMutation = useMutation({
     ...sendInvoiceViaWhatsAppMutation,
     onSuccess: (result) => {
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success(`Invoice sent via WhatsApp (${result.provider})`);
       if (result.conversationId) {
         router.push(`/dashboard/communications/${result.conversationId}`);
@@ -67,6 +72,7 @@ export function CellAction({ data }: CellActionProps) {
   const markSentMutation = useMutation({
     ...markInvoiceAsSentMutation,
     onSuccess: async (result) => {
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       if (result.paymentLink && navigator.clipboard) {
         await navigator.clipboard.writeText(result.paymentLink);
       }
@@ -78,6 +84,7 @@ export function CellAction({ data }: CellActionProps) {
   const markPaidMutation = useMutation({
     ...markInvoiceAsPaidMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success('Invoice marked as paid and payment recorded');
     },
     onError: () => toast.error('Failed to mark invoice as paid')

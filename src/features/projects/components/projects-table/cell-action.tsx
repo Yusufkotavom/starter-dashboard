@@ -15,8 +15,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { deleteProjectMutation } from '../../api/mutations';
+import { projectKeys } from '../../api/queries';
 import type { Project } from '../../api/types';
 import { buildProjectBoardHref } from '@/lib/project-progress';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Project;
@@ -29,6 +31,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteProjectMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: projectKeys.all });
       toast.success('Project deleted successfully');
       setDeleteOpen(false);
     },

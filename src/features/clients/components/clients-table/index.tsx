@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
@@ -7,9 +8,13 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
 import { clientsQueryOptions } from '../../api/queries';
+import type { Client } from '../../api/types';
+import { ClientFormSheet } from '../client-form-sheet';
 import { columns } from './columns';
 
 export function ClientsTable() {
+  const [activeClient, setActiveClient] = useState<Client | undefined>(undefined);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -42,9 +47,18 @@ export function ClientsTable() {
   });
 
   return (
-    <DataTable table={table}>
-      <DataTableToolbar table={table} />
-    </DataTable>
+    <>
+      <DataTable
+        table={table}
+        onRowClick={(row) => {
+          setActiveClient(row);
+          setIsSheetOpen(true);
+        }}
+      >
+        <DataTableToolbar table={table} />
+      </DataTable>
+      <ClientFormSheet client={activeClient} open={isSheetOpen} onOpenChange={setIsSheetOpen} />
+    </>
   );
 }
 

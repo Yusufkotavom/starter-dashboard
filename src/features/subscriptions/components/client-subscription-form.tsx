@@ -10,7 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { clientsQueryOptions } from '@/features/clients/api/queries';
 import { projectsQueryOptions } from '@/features/projects/api/queries';
-import { subscriptionPlansQueryOptions } from '../api/queries';
+import {
+  clientSubscriptionKeys,
+  subscriptionPlanKeys,
+  subscriptionPlansQueryOptions
+} from '../api/queries';
 import {
   createClientSubscriptionMutation,
   updateClientSubscriptionMutation
@@ -21,6 +25,7 @@ import {
   clientSubscriptionSchema,
   type ClientSubscriptionFormValues
 } from '../schemas/client-subscription';
+import { getQueryClient } from '@/lib/query-client';
 
 function toDateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : '';
@@ -102,6 +107,8 @@ export default function ClientSubscriptionForm({
   const createMutation = useMutation({
     ...createClientSubscriptionMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientSubscriptionKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
       toast.success('Client subscription created');
       router.push(returnPath ?? '/dashboard/subscriptions');
       router.refresh();
@@ -114,6 +121,8 @@ export default function ClientSubscriptionForm({
   const updateMutation = useMutation({
     ...updateClientSubscriptionMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: clientSubscriptionKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: subscriptionPlanKeys.all });
       toast.success('Client subscription updated');
       router.push(returnPath ?? '/dashboard/subscriptions');
       router.refresh();

@@ -6,7 +6,7 @@ import {
   SubscriptionStatus
 } from '@prisma/client';
 import { NextResponse } from 'next/server';
-import { generateRunningNumber, isDocumentNumberConflict } from '@/lib/agency-workflows';
+import { generateUniqueRunningNumber, isDocumentNumberConflict } from '@/lib/agency-workflows';
 import { getAppSettings } from '@/lib/app-settings';
 import {
   appendPortalNote,
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       response = await prisma.$transaction(async (tx) => {
         const quotationData: Prisma.QuotationUncheckedCreateInput = {
           organizationId: clientOrganizationId,
-          number: await generateRunningNumber(tx, 'quotation', clientOrganizationId),
+          number: await generateUniqueRunningNumber(tx, 'quotation', clientOrganizationId),
           clientId: client.id,
           status: 'APPROVED',
           subtotal: new Prisma.Decimal(amount),
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
 
         const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
           organizationId: clientOrganizationId,
-          number: await generateRunningNumber(tx, 'invoice', clientOrganizationId),
+          number: await generateUniqueRunningNumber(tx, 'invoice', clientOrganizationId),
           clientId: client.id,
           projectId: project.id,
           subscriptionId,

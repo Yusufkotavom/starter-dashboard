@@ -13,15 +13,15 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { COLUMN_TITLES } from './board-column';
-import { type KanbanColumnKey, type Task, useTaskStore } from '../utils/store';
+import type { KanbanColumnKey, KanbanTask } from '../api/types';
 
 interface TaskCardProps extends Omit<React.ComponentProps<typeof KanbanItem>, 'value'> {
-  task: Task;
+  task: KanbanTask;
   column: KanbanColumnKey;
+  onMoveTask: (taskId: number, targetColumn: KanbanColumnKey) => void;
 }
 
-export function TaskCard({ task, column, ...props }: TaskCardProps) {
-  const moveTask = useTaskStore((state) => state.moveTask);
+export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) {
   const isDone = column === 'done';
 
   return (
@@ -32,7 +32,7 @@ export function TaskCard({ task, column, ...props }: TaskCardProps) {
             <Checkbox
               checked={isDone}
               className='mt-0.5'
-              onCheckedChange={(checked) => moveTask(task.id, checked ? 'done' : 'backlog')}
+              onCheckedChange={(checked) => onMoveTask(task.id, checked ? 'done' : 'backlog')}
               aria-label={`Mark ${task.title} as done`}
             />
             <div className='min-w-0 flex-1 space-y-1'>
@@ -79,7 +79,7 @@ export function TaskCard({ task, column, ...props }: TaskCardProps) {
           <div className='flex items-center justify-between gap-2'>
             <Select
               value={column}
-              onValueChange={(value) => moveTask(task.id, value as KanbanColumnKey)}
+              onValueChange={(value) => onMoveTask(task.id, value as KanbanColumnKey)}
             >
               <SelectTrigger size='sm' className='h-7 w-full text-xs'>
                 <SelectValue />

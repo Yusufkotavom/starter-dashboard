@@ -1,6 +1,7 @@
 'use client';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
@@ -10,6 +11,7 @@ import { paymentsQueryOptions } from '../../api/queries';
 import { columns } from './columns';
 
 export function PaymentsTable() {
+  const router = useRouter();
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -39,7 +41,7 @@ export function PaymentsTable() {
   });
 
   return (
-    <DataTable table={table}>
+    <DataTable table={table} onRowClick={(row) => router.push(`/dashboard/payments/${row.id}`)}>
       <DataTableToolbar table={table} />
     </DataTable>
   );

@@ -71,6 +71,32 @@ export async function generateRunningNumber(
   return `${prefix}-${year}-${String(sequence.lastValue).padStart(4, '0')}`;
 }
 
+export async function generateUniqueRunningNumber(
+  db: DbClient,
+  type: 'quotation' | 'invoice',
+  organizationId?: string | null
+): Promise<string> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const candidate = await generateRunningNumber(db, type, organizationId);
+    const existing =
+      type === 'quotation'
+        ? await db.quotation.findUnique({
+            where: { number: candidate },
+            select: { id: true }
+          })
+        : await db.invoice.findUnique({
+            where: { number: candidate },
+            select: { id: true }
+          });
+
+    if (!existing) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`UNIQUE_${type.toUpperCase()}_NUMBER_GENERATION_FAILED`);
+}
+
 export async function buildQuotationDocument(
   db: DbClient,
   body: QuotationMutationPayload,
@@ -132,7 +158,7 @@ export async function buildQuotationDocument(
   const documentNumber =
     normalizeNumberInput(body.number) ??
     currentNumber ??
-    (await generateRunningNumber(db, 'quotation', organizationId ?? null));
+    (await generateUniqueRunningNumber(db, 'quotation', organizationId ?? null));
 
   return {
     organizationId: organizationId ?? null,
@@ -225,7 +251,7 @@ export async function buildInvoiceDocument(
   const documentNumber =
     normalizeNumberInput(body.number) ??
     currentNumber ??
-    (await generateRunningNumber(db, 'invoice', organizationId ?? null));
+    (await generateUniqueRunningNumber(db, 'invoice', organizationId ?? null));
 
   return {
     organizationId: organizationId ?? null,

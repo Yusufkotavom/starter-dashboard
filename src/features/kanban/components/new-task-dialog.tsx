@@ -1,5 +1,6 @@
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,10 +20,14 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useTaskStore } from '../utils/store';
+import { createKanbanTaskMutation } from '../api/mutations';
 
-export default function NewTaskDialog() {
-  const addTask = useTaskStore((state) => state.addTask);
+interface NewTaskDialogProps {
+  projectId?: number;
+}
+
+export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
+  const createTask = useMutation(createKanbanTaskMutation);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,7 +37,8 @@ export default function NewTaskDialog() {
     const { title, description, assignee, priority } = Object.fromEntries(formData);
 
     if (typeof title !== 'string') return;
-    addTask({
+    createTask.mutate({
+      projectId,
       title,
       description: typeof description === 'string' ? description : undefined,
       assignee: typeof assignee === 'string' ? assignee : undefined,

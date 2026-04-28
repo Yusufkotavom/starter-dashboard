@@ -15,10 +15,12 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { createPaymentMutation, updatePaymentMutation } from '../api/mutations';
+import { paymentKeys } from '../api/queries';
 import type { Payment } from '../api/types';
 import { invoicesQueryOptions } from '@/features/invoices/api/queries';
 import { PAYMENT_METHOD_OPTIONS } from '../constants';
 import { paymentSchema, type PaymentFormValues } from '../schemas/payment';
+import { getQueryClient } from '@/lib/query-client';
 
 interface PaymentFormSheetProps {
   payment?: Payment;
@@ -42,6 +44,7 @@ export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormShe
   const createMutation = useMutation({
     ...createPaymentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: paymentKeys.all });
       toast.success('Payment recorded successfully');
       onOpenChange(false);
       form.reset();
@@ -52,6 +55,7 @@ export function PaymentFormSheet({ payment, open, onOpenChange }: PaymentFormShe
   const updateMutation = useMutation({
     ...updatePaymentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: paymentKeys.all });
       toast.success('Payment updated successfully');
       onOpenChange(false);
     },

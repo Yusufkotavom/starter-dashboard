@@ -16,9 +16,11 @@ import { quotationsQueryOptions } from '@/features/quotations/api/queries';
 import { buildProjectBoardHref, getProjectProgressSummary } from '@/lib/project-progress';
 import { formatPrice } from '@/lib/utils';
 import { createProjectMutation, updateProjectMutation } from '../api/mutations';
+import { projectKeys } from '../api/queries';
 import type { Project } from '../api/types';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
 import { projectSchema, type ProjectFormValues } from '../schemas/project';
+import { getQueryClient } from '@/lib/query-client';
 
 function toDateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : '';
@@ -58,6 +60,7 @@ export default function ProjectForm({
   const createMutation = useMutation({
     ...createProjectMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: projectKeys.all });
       toast.success('Project created successfully');
       router.push('/dashboard/projects');
     },
@@ -67,6 +70,7 @@ export default function ProjectForm({
   const updateMutation = useMutation({
     ...updateProjectMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: projectKeys.all });
       toast.success('Project updated successfully');
       router.push('/dashboard/projects');
     },

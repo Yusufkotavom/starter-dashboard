@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
-import { invoicesQueryOptions } from '@/features/invoices/api/queries';
+import { invoiceKeys, invoicesQueryOptions } from '@/features/invoices/api/queries';
 import { createPaymentMutation, updatePaymentMutation } from '../api/mutations';
+import { paymentKeys } from '../api/queries';
 import type { Payment } from '../api/types';
 import { PAYMENT_METHOD_OPTIONS } from '../constants';
 import { paymentSchema, type PaymentFormValues } from '../schemas/payment';
+import { getQueryClient } from '@/lib/query-client';
 
 function toDateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : '';
@@ -37,6 +39,8 @@ export default function PaymentForm({
   const createMutation = useMutation({
     ...createPaymentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: paymentKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success('Payment recorded successfully');
       router.push('/dashboard/payments');
     },
@@ -46,6 +50,8 @@ export default function PaymentForm({
   const updateMutation = useMutation({
     ...updatePaymentMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: paymentKeys.all });
+      getQueryClient().invalidateQueries({ queryKey: invoiceKeys.all });
       toast.success('Payment updated successfully');
       router.push('/dashboard/payments');
     },

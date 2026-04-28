@@ -14,8 +14,10 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { deleteExpenseMutation } from '../../api/mutations';
+import { expenseKeys } from '../../api/queries';
 import type { Expense } from '../../api/types';
 import { ExpenseFormSheet } from '../expense-form-sheet';
+import { getQueryClient } from '@/lib/query-client';
 
 interface CellActionProps {
   data: Expense;
@@ -28,6 +30,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteExpenseMutation,
     onSuccess: () => {
+      getQueryClient().invalidateQueries({ queryKey: expenseKeys.all });
       toast.success('Expense deleted successfully');
       setDeleteOpen(false);
     },

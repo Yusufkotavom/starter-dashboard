@@ -34,8 +34,7 @@ const portalNavItems = [
   { title: 'Invoices', href: '/portal/invoices', icon: 'billing' },
   { title: 'Quotations', href: '/portal/quotations', icon: 'post' },
   { title: 'Projects', href: '/portal/projects', icon: 'workspace' },
-  { title: 'Subscriptions', href: '/portal/subscriptions', icon: 'sparkles' },
-  { title: 'Digital Access', href: '/portal/digital-access', icon: 'externalLink' }
+  { title: 'My Product', href: '/portal/my-product', icon: 'product' }
 ] as const;
 
 export function PortalSidebar() {

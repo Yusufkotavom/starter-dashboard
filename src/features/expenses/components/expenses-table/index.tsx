@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { DataTable } from '@/components/ui/table/data-table';
@@ -7,9 +8,13 @@ import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
 import { getSortingStateParser } from '@/lib/parsers';
 import { expensesQueryOptions } from '../../api/queries';
+import type { Expense } from '../../api/types';
+import { ExpenseFormSheet } from '../expense-form-sheet';
 import { columns } from './columns';
 
 export function ExpensesTable() {
+  const [activeExpense, setActiveExpense] = useState<Expense | undefined>(undefined);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -39,9 +44,18 @@ export function ExpensesTable() {
   });
 
   return (
-    <DataTable table={table}>
-      <DataTableToolbar table={table} />
-    </DataTable>
+    <>
+      <DataTable
+        table={table}
+        onRowClick={(row) => {
+          setActiveExpense(row);
+          setIsSheetOpen(true);
+        }}
+      >
+        <DataTableToolbar table={table} />
+      </DataTable>
+      <ExpenseFormSheet expense={activeExpense} open={isSheetOpen} onOpenChange={setIsSheetOpen} />
+    </>
   );
 }
 

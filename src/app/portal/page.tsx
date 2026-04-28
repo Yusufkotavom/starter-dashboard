@@ -30,7 +30,7 @@ export default async function PortalPage() {
         <h1 className='text-3xl font-semibold tracking-tight'>{client.company ?? client.name}</h1>
         <p className='text-muted-foreground max-w-3xl'>
           Use this portal to place new orders, review invoices, monitor project delivery, and access
-          recurring subscriptions or digital products without going back to email threads.
+          your products and services without going back to email threads.
         </p>
       </div>
 
@@ -123,12 +123,12 @@ export default async function PortalPage() {
               </div>
             </Link>
             <Link
-              href='/portal/subscriptions'
+              href='/portal/my-product'
               className='rounded-2xl border p-4 transition-colors hover:bg-muted/40'
             >
-              <div className='font-medium'>Subscriptions</div>
+              <div className='font-medium'>My Product</div>
               <div className='text-muted-foreground mt-1 text-sm'>
-                Recurring plans and future billing.
+                All products/services from invoice and quotation.
               </div>
             </Link>
           </CardContent>
@@ -142,7 +142,7 @@ export default async function PortalPage() {
         </CardHeader>
         <CardContent className='grid gap-3 md:grid-cols-3'>
           <div className='rounded-2xl border p-4'>
-            <div className='text-muted-foreground text-sm'>Recurring Services</div>
+            <div className='text-muted-foreground text-sm'>Recurring Services (via Invoices)</div>
             <div className='mt-2 text-2xl font-semibold'>{overview.activeSubscriptionsCount}</div>
           </div>
           <div className='rounded-2xl border p-4'>
