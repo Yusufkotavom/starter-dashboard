@@ -60,8 +60,19 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
             : 'Manage tasks with drag and drop'
       }
       pageHeaderAction={
-        <div className='flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap'>
-          <Button asChild variant='outline' size='sm' className='w-full sm:w-auto'>
+        <div
+          className={
+            compact
+              ? 'flex w-full items-center justify-end gap-2'
+              : 'flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap'
+          }
+        >
+          <Button
+            asChild
+            variant='outline'
+            size='sm'
+            className={compact ? 'shrink-0' : 'w-full sm:w-auto'}
+          >
             <Link href={toggleCompactHref}>
               <ToggleCompactIcon className='mr-2 h-4 w-4' />
               {toggleCompactLabel}
@@ -75,7 +86,9 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
               </Link>
             </Button>
           ) : null}
-          <NewTaskDialog projectId={projectId} />
+          <div className={compact ? 'shrink-0' : ''}>
+            <NewTaskDialog projectId={projectId} />
+          </div>
         </div>
       }
     >

@@ -6,6 +6,9 @@ import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import { currentUser } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { isDashboardAdminUser } from '@/lib/access-control';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +22,15 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const user = await currentUser();
+  if (!user) {
+    redirect('/auth/sign-in');
+  }
+
+  if (!isDashboardAdminUser(user)) {
+    redirect('/portal');
+  }
+
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';

@@ -68,25 +68,23 @@ export default function SignInViewPage() {
           />
           <ClerkSignInForm
             initialValues={{
-              emailAddress: 'your_mail+clerk_test@example.com'
+              emailAddress: 'admin@example.com'
             }}
+            forceRedirectUrl='/dashboard/overview'
+            fallbackRedirectUrl='/dashboard/overview'
+            signUpUrl='/auth/portal/sign-up'
+            withSignUp={false}
           />
           <div className='text-muted-foreground space-y-2 px-8 text-center text-xs'>
             <p>
-              This is an{' '}
-              <Link href='/about' className='hover:text-primary underline underline-offset-4'>
-                open-source project
-              </Link>{' '}
-              for demo purposes. Authentication is handled securely by Clerk.
-            </p>
-            <p>
+              Admin sign-in only. Portal customer accounts should use{' '}
               <Link
-                href='https://github.com/kiranism/next-shadcn-dashboard-starter'
-                target='_blank'
+                href='/auth/portal/sign-in'
                 className='hover:text-primary underline underline-offset-4'
               >
-                View on GitHub
+                portal sign-in
               </Link>
+              .
             </p>
           </div>
 

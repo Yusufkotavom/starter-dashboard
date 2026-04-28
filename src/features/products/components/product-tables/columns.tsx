@@ -4,6 +4,7 @@ import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-h
 import type { Product } from '../../api/types';
 import { Column, ColumnDef } from '@tanstack/react-table';
 import { Icons } from '@/components/icons';
+import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { CellAction } from './cell-action';
 import { CATEGORY_OPTIONS } from './options';
@@ -85,10 +86,7 @@ export const columns: ColumnDef<Product>[] = [
     header: 'PRICE',
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('price'));
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      }).format(amount);
+      return formatPrice(amount);
     }
   },
   {

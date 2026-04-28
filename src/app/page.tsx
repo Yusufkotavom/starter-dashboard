@@ -1,12 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { isDashboardAdminUser } from '@/lib/access-control';
 
 export default async function Page() {
-  const { userId } = await auth();
+  const user = await currentUser();
 
-  if (!userId) {
-    return redirect('/auth/sign-in');
-  } else {
+  if (!user) {
+    return redirect('/auth/portal/sign-in');
+  }
+
+  if (isDashboardAdminUser(user)) {
     redirect('/dashboard/overview');
   }
+
+  redirect('/portal');
 }

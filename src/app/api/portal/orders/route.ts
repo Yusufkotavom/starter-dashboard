@@ -140,111 +140,117 @@ export async function POST(request: Request) {
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
-      response = await prisma.$transaction(async (tx) => {
-        const quotationData: Prisma.QuotationUncheckedCreateInput = {
-          organizationId: clientOrganizationId,
-          number: await generateUniqueRunningNumber(tx, 'quotation', clientOrganizationId),
-          clientId: client.id,
-          status: 'APPROVED',
-          subtotal: new Prisma.Decimal(amount),
-          tax: new Prisma.Decimal(0),
-          discount: new Prisma.Decimal(0),
-          total: new Prisma.Decimal(amount),
-          validUntil: dueDate,
-          notes: sourceLabel,
-          items: {
-            create: {
-              productId: product.id,
-              description,
-              qty: new Prisma.Decimal(1),
-              unitPrice: new Prisma.Decimal(amount),
-              amount: new Prisma.Decimal(amount)
-            }
-          }
-        };
-        const quotation = await tx.quotation.create({
-          data: quotationData,
-          select: {
-            id: true,
-            number: true
-          }
-        });
-
-        const projectData: Prisma.ProjectUncheckedCreateInput = {
-          organizationId: clientOrganizationId,
-          name: buildProjectName(product.name, clientLabel, plan?.name),
-          clientId: client.id,
-          quotationId: quotation.id,
-          status: 'ACTIVE',
-          startDate: orderDate,
-          budget: new Prisma.Decimal(amount),
-          notes: appendPortalNote(
-            null,
-            `Created automatically from portal order.\nProduct type: ${product.type === ProductType.SERVICE ? 'Service' : 'Product'}`
-          )
-        };
-        const project = await tx.project.create({
-          data: projectData,
-          select: {
-            id: true
-          }
-        });
-
-        let subscriptionId: number | null = null;
-        if (
-          plan &&
-          plan.interval !== SubscriptionInterval.ONE_TIME &&
-          plan.interval !== SubscriptionInterval.LIFETIME
-        ) {
-          const subscriptionData: Prisma.ClientSubscriptionUncheckedCreateInput = {
+      response = await prisma.$transaction(
+        async (tx) => {
+          const quotationData: Prisma.QuotationUncheckedCreateInput = {
             organizationId: clientOrganizationId,
+            number: await generateUniqueRunningNumber(tx, 'quotation', clientOrganizationId),
             clientId: client.id,
-            planId: plan.id,
-            projectId: project.id,
-            status: SubscriptionStatus.ACTIVE,
-            startDate: orderDate,
-            nextBillingDate: addInterval(orderDate, plan.interval),
-            autoRenew: true,
-            notes: sourceLabel
+            status: 'APPROVED',
+            subtotal: new Prisma.Decimal(amount),
+            tax: new Prisma.Decimal(0),
+            discount: new Prisma.Decimal(0),
+            total: new Prisma.Decimal(amount),
+            validUntil: dueDate,
+            notes: sourceLabel,
+            items: {
+              create: {
+                productId: product.id,
+                description,
+                qty: new Prisma.Decimal(1),
+                unitPrice: new Prisma.Decimal(amount),
+                amount: new Prisma.Decimal(amount)
+              }
+            }
           };
-          const subscription = await tx.clientSubscription.create({
-            data: subscriptionData,
+          const quotation = await tx.quotation.create({
+            data: quotationData,
+            select: {
+              id: true,
+              number: true
+            }
+          });
+
+          const projectData: Prisma.ProjectUncheckedCreateInput = {
+            organizationId: clientOrganizationId,
+            name: buildProjectName(product.name, clientLabel, plan?.name),
+            clientId: client.id,
+            quotationId: quotation.id,
+            status: 'ACTIVE',
+            startDate: orderDate,
+            budget: new Prisma.Decimal(amount),
+            notes: appendPortalNote(
+              null,
+              `Created automatically from portal order.\nProduct type: ${product.type === ProductType.SERVICE ? 'Service' : 'Product'}`
+            )
+          };
+          const project = await tx.project.create({
+            data: projectData,
             select: {
               id: true
             }
           });
-          subscriptionId = subscription.id;
-        }
 
-        const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
-          organizationId: clientOrganizationId,
-          number: await generateUniqueRunningNumber(tx, 'invoice', clientOrganizationId),
-          clientId: client.id,
-          projectId: project.id,
-          subscriptionId,
-          status: InvoiceStatus.SENT,
-          subtotal: new Prisma.Decimal(amount),
-          tax: new Prisma.Decimal(0),
-          total: new Prisma.Decimal(amount),
-          dueDate,
-          notes: appendPortalNote(
-            sourceLabel,
-            `Auto-generated invoice from portal order.\nSource quotation: ${quotation.number}`
-          )
-        };
-        const invoice = await tx.invoice.create({
-          data: invoiceData,
-          select: {
-            id: true,
-            number: true
+          let subscriptionId: number | null = null;
+          if (
+            plan &&
+            plan.interval !== SubscriptionInterval.ONE_TIME &&
+            plan.interval !== SubscriptionInterval.LIFETIME
+          ) {
+            const subscriptionData: Prisma.ClientSubscriptionUncheckedCreateInput = {
+              organizationId: clientOrganizationId,
+              clientId: client.id,
+              planId: plan.id,
+              projectId: project.id,
+              status: SubscriptionStatus.ACTIVE,
+              startDate: orderDate,
+              nextBillingDate: addInterval(orderDate, plan.interval),
+              autoRenew: true,
+              notes: sourceLabel
+            };
+            const subscription = await tx.clientSubscription.create({
+              data: subscriptionData,
+              select: {
+                id: true
+              }
+            });
+            subscriptionId = subscription.id;
           }
-        });
 
-        return {
-          invoiceId: invoice.id,
-          invoiceNumber: invoice.number
-        };
-      });
+          const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
+            organizationId: clientOrganizationId,
+            number: await generateUniqueRunningNumber(tx, 'invoice', clientOrganizationId),
+            clientId: client.id,
+            projectId: project.id,
+            subscriptionId,
+            status: InvoiceStatus.SENT,
+            subtotal: new Prisma.Decimal(amount),
+            tax: new Prisma.Decimal(0),
+            total: new Prisma.Decimal(amount),
+            dueDate,
+            notes: appendPortalNote(
+              sourceLabel,
+              `Auto-generated invoice from portal order.\nSource quotation: ${quotation.number}`
+            )
+          };
+          const invoice = await tx.invoice.create({
+            data: invoiceData,
+            select: {
+              id: true,
+              number: true
+            }
+          });
+
+          return {
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.number
+          };
+        },
+        {
+          maxWait: 10_000,
+          timeout: 20_000
+        }
+      );
       break;
     } catch (error) {
       if (!isDocumentNumberConflict(error) || attempt === 4) {

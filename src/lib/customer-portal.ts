@@ -924,7 +924,7 @@ async function getPortalIdentity(): Promise<{
   const user = await currentUser();
 
   if (!user) {
-    redirect('/auth/sign-in');
+    redirect('/auth/portal/sign-in');
   }
 
   const email =
@@ -974,7 +974,8 @@ async function getOrCreatePortalClient() {
   const client = await prisma.client.upsert({
     where: { email: identity.email },
     update: {
-      name: leadName
+      name: leadName,
+      status: ClientStatus.LEAD
     },
     create: {
       name: leadName,
