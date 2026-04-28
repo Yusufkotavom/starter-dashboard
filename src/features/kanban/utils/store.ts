@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 // import { persist } from 'zustand/middleware';
 
 export type Priority = 'low' | 'medium' | 'high';
+export type KanbanColumnKey = 'backlog' | 'inProgress' | 'review' | 'done';
 
 export type Task = {
   id: string;
@@ -14,12 +15,18 @@ export type Task = {
 };
 
 type KanbanState = {
-  columns: Record<string, Task[]>;
-  setColumns: (columns: Record<string, Task[]>) => void;
-  addTask: (title: string, description?: string) => void;
+  columns: Record<KanbanColumnKey, Task[]>;
+  setColumns: (columns: Record<KanbanColumnKey, Task[]>) => void;
+  addTask: (input: {
+    title: string;
+    description?: string;
+    assignee?: string;
+    priority?: Priority;
+  }) => void;
+  moveTask: (taskId: string, targetColumn: KanbanColumnKey) => void;
 };
 
-const initialColumns: Record<string, Task[]> = {
+const initialColumns: Record<KanbanColumnKey, Task[]> = {
   backlog: [
     {
       id: '1',
@@ -73,6 +80,15 @@ const initialColumns: Record<string, Task[]> = {
       dueDate: '2026-04-04'
     }
   ],
+  review: [
+    {
+      id: '11',
+      title: 'QA smoke test for new onboarding flow',
+      priority: 'medium',
+      assignee: 'Emily Nakamura',
+      dueDate: '2026-04-07'
+    }
+  ],
   done: [
     {
       id: '6',
@@ -106,7 +122,7 @@ export const useTaskStore = create<KanbanState>()(
 
     setColumns: (columns) => set({ columns }),
 
-    addTask: (title, description) =>
+    addTask: ({ title, description, assignee, priority = 'medium' }) =>
       set((state) => ({
         columns: {
           ...state.columns,
@@ -115,14 +131,38 @@ export const useTaskStore = create<KanbanState>()(
               id: uuid(),
               title,
               description,
-              priority: 'medium' as Priority,
-              assignee: undefined,
+              priority,
+              assignee: assignee || undefined,
               dueDate: undefined
             },
             ...(state.columns.backlog ?? [])
           ]
         }
-      }))
+      })),
+
+    moveTask: (taskId, targetColumn) =>
+      set((state) => {
+        const nextColumns: Record<KanbanColumnKey, Task[]> = {
+          backlog: [...state.columns.backlog],
+          inProgress: [...state.columns.inProgress],
+          review: [...state.columns.review],
+          done: [...state.columns.done]
+        };
+
+        let taskToMove: Task | null = null;
+        for (const columnKey of Object.keys(nextColumns) as KanbanColumnKey[]) {
+          const taskIndex = nextColumns[columnKey].findIndex((task) => task.id === taskId);
+          if (taskIndex !== -1) {
+            const [task] = nextColumns[columnKey].splice(taskIndex, 1);
+            taskToMove = task;
+            break;
+          }
+        }
+
+        if (!taskToMove) return state;
+        nextColumns[targetColumn].unshift(taskToMove);
+        return { columns: nextColumns };
+      })
   })
   //   ,
   //   { name: 'kanban-store' }

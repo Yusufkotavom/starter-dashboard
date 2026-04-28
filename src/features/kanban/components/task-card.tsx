@@ -1,20 +1,53 @@
 'use client';
 
+import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import { KanbanItem } from '@/components/ui/kanban';
-import type { Task } from '../utils/store';
+import { Checkbox } from '@/components/ui/checkbox';
+import { KanbanItem, KanbanItemHandle } from '@/components/ui/kanban';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { COLUMN_TITLES } from './board-column';
+import { type KanbanColumnKey, type Task, useTaskStore } from '../utils/store';
 
 interface TaskCardProps extends Omit<React.ComponentProps<typeof KanbanItem>, 'value'> {
   task: Task;
+  column: KanbanColumnKey;
 }
 
-export function TaskCard({ task, ...props }: TaskCardProps) {
+export function TaskCard({ task, column, ...props }: TaskCardProps) {
+  const moveTask = useTaskStore((state) => state.moveTask);
+  const isDone = column === 'done';
+
   return (
     <KanbanItem key={task.id} value={task.id} asChild {...props}>
-      <div className='bg-card rounded-md border p-3 shadow-xs'>
-        <div className='flex flex-col gap-2'>
-          <div className='flex items-center justify-between gap-2'>
-            <span className='line-clamp-1 text-sm font-medium'>{task.title}</span>
+      <div className='bg-card rounded-md border p-2.5 shadow-xs transition-shadow hover:shadow-sm'>
+        <div className='flex flex-col gap-2.5'>
+          <div className='flex items-start gap-2'>
+            <Checkbox
+              checked={isDone}
+              className='mt-0.5'
+              onCheckedChange={(checked) => moveTask(task.id, checked ? 'done' : 'backlog')}
+              aria-label={`Mark ${task.title} as done`}
+            />
+            <div className='min-w-0 flex-1 space-y-1'>
+              <span
+                className={cn(
+                  'line-clamp-2 block text-sm font-medium leading-tight',
+                  isDone && 'text-muted-foreground line-through'
+                )}
+              >
+                {task.title}
+              </span>
+              {task.description ? (
+                <p className='text-muted-foreground line-clamp-2 text-xs'>{task.description}</p>
+              ) : null}
+            </div>
             <Badge
               variant={
                 task.priority === 'high'
@@ -28,14 +61,57 @@ export function TaskCard({ task, ...props }: TaskCardProps) {
               {task.priority}
             </Badge>
           </div>
-          <div className='text-muted-foreground flex items-center justify-between text-xs'>
-            {task.assignee && (
+
+          <div className='text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-xs'>
+            <div className='flex min-w-0 items-center gap-1'>
+              {task.assignee ? (
+                <>
+                  <div className='bg-primary/20 size-2 rounded-full' />
+                  <span className='line-clamp-1'>{task.assignee}</span>
+                </>
+              ) : (
+                <span>Unassigned</span>
+              )}
+            </div>
+            {task.dueDate ? <time className='text-[10px] tabular-nums'>{task.dueDate}</time> : null}
+          </div>
+
+          <div className='flex items-center justify-between gap-2'>
+            <Select
+              value={column}
+              onValueChange={(value) => moveTask(task.id, value as KanbanColumnKey)}
+            >
+              <SelectTrigger size='sm' className='h-7 w-full text-xs'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(COLUMN_TITLES) as KanbanColumnKey[]).map((columnKey) => (
+                  <SelectItem key={columnKey} value={columnKey}>
+                    {COLUMN_TITLES[columnKey]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <KanbanItemHandle asChild>
+              <button
+                type='button'
+                aria-label='Drag task'
+                className='text-muted-foreground hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded border'
+              >
+                <Icons.gripVertical className='h-4 w-4' />
+              </button>
+            </KanbanItemHandle>
+          </div>
+          <div className='flex items-center gap-1 text-[11px]'>
+            {column === 'backlog' ? (
+              <span className='text-muted-foreground'>Todo</span>
+            ) : (
               <div className='flex items-center gap-1'>
-                <div className='bg-primary/20 size-2 rounded-full' />
-                <span className='line-clamp-1'>{task.assignee}</span>
+                <Icons.circleCheck className='h-3.5 w-3.5' />
+                <span className='text-muted-foreground'>{COLUMN_TITLES[column]}</span>
               </div>
             )}
-            {task.dueDate && <time className='text-[10px] tabular-nums'>{task.dueDate}</time>}
           </div>
         </div>
       </div>

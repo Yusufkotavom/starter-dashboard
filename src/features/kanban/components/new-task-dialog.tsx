@@ -11,6 +11,13 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useTaskStore } from '../utils/store';
 
@@ -22,10 +29,17 @@ export default function NewTaskDialog() {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const { title, description } = Object.fromEntries(formData);
+    const { title, description, assignee, priority } = Object.fromEntries(formData);
 
-    if (typeof title !== 'string' || typeof description !== 'string') return;
-    addTask(title, description);
+    if (typeof title !== 'string') return;
+    addTask({
+      title,
+      description: typeof description === 'string' ? description : undefined,
+      assignee: typeof assignee === 'string' ? assignee : undefined,
+      priority:
+        priority === 'high' || priority === 'medium' || priority === 'low' ? priority : 'medium'
+    });
+    form.reset();
   };
 
   return (
@@ -51,6 +65,26 @@ export default function NewTaskDialog() {
               placeholder='Description...'
               className='col-span-4'
             />
+          </div>
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Input
+              id='assignee'
+              name='assignee'
+              placeholder='Assignee (optional)'
+              className='col-span-4'
+            />
+          </div>
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Select name='priority' defaultValue='medium'>
+              <SelectTrigger className='col-span-4 w-full'>
+                <SelectValue placeholder='Priority' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='high'>High priority</SelectItem>
+                <SelectItem value='medium'>Medium priority</SelectItem>
+                <SelectItem value='low'>Low priority</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </form>
         <DialogFooter>

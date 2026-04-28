@@ -28,9 +28,9 @@ export default function KanbanViewPage({ context }: KanbanViewPageProps) {
           : 'Manage tasks with drag and drop'
       }
       pageHeaderAction={
-        <div className='flex items-center gap-2'>
+        <div className='flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap'>
           {context?.projectId ? (
-            <Button asChild variant='outline'>
+            <Button asChild variant='outline' size='sm' className='w-full sm:w-auto'>
               <Link href={`/dashboard/projects/${context.projectId}`}>
                 <Icons.chevronLeft className='mr-2 h-4 w-4' />
                 Project
@@ -42,7 +42,7 @@ export default function KanbanViewPage({ context }: KanbanViewPageProps) {
       }
     >
       {hasProjectContext ? (
-        <div className='mb-6 rounded-2xl border bg-muted/20 p-4'>
+        <div className='mb-4 rounded-xl border bg-muted/20 p-4 md:mb-6'>
           <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
             <div className='space-y-1'>
               <div className='text-sm font-medium'>
