@@ -64,22 +64,25 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
           className={
             compact
               ? 'flex w-auto max-w-full flex-wrap items-center justify-end gap-2'
-              : 'flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap'
+              : 'flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:flex-nowrap'
           }
         >
-          <Button
-            asChild
-            variant='outline'
-            size='sm'
-            className={compact ? 'shrink-0 whitespace-nowrap' : 'w-full sm:w-auto'}
-          >
+          <Button asChild variant='outline' size='sm' className='shrink-0 whitespace-nowrap'>
             <Link href={toggleCompactHref}>
               <ToggleCompactIcon className='mr-2 h-4 w-4' />
               {toggleCompactLabel}
             </Link>
           </Button>
+          {context?.projectId ? (
+            <Button asChild variant='outline' size='sm' className='shrink-0 whitespace-nowrap'>
+              <Link href={`/dashboard/projects/${context.projectId}?tab=docs`}>
+                <Icons.fileTypeDoc className='mr-2 h-4 w-4' />
+                Docs
+              </Link>
+            </Button>
+          ) : null}
           {context?.projectId && !compact ? (
-            <Button asChild variant='outline' size='sm' className='w-full sm:w-auto'>
+            <Button asChild variant='outline' size='sm' className='shrink-0 whitespace-nowrap'>
               <Link href={`/dashboard/projects/${context.projectId}`}>
                 <Icons.chevronLeft className='mr-2 h-4 w-4' />
                 Project
@@ -96,7 +99,7 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
         <div className='mb-4 rounded-xl border bg-muted/20 p-4 md:mb-6'>
           <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
             <div className='space-y-1'>
-              <div className='text-sm font-medium'>
+              <div className='text-sm font-medium break-words'>
                 {context?.phase ?? 'Execution'}
                 {context?.clientName ? ` · ${context.clientName}` : ''}
               </div>

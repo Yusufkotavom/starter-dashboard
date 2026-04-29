@@ -152,11 +152,11 @@ export function KanbanBoard({ fullScreen = false, projectId }: KanbanBoardProps)
         fullScreen ? 'flex h-full min-h-0 flex-col' : 'lg:h-[calc(100dvh-17rem)] lg:min-h-[38rem]'
       )}
     >
-      <div className='mb-3 flex shrink-0 gap-1 overflow-x-auto pb-1 md:hidden'>
+      <div className='mb-2 flex shrink-0 gap-1 md:hidden'>
         <Button
           size='sm'
           variant={viewMode === 'board' ? 'default' : 'outline'}
-          className='h-8 shrink-0 rounded-md px-3 text-xs'
+          className='h-8 rounded-md px-3 text-xs'
           onClick={() => setViewMode('board')}
         >
           Board
@@ -164,22 +164,27 @@ export function KanbanBoard({ fullScreen = false, projectId }: KanbanBoardProps)
         <Button
           size='sm'
           variant={viewMode === 'table' ? 'default' : 'outline'}
-          className='h-8 shrink-0 rounded-md px-3 text-xs'
+          className='h-8 rounded-md px-3 text-xs'
           onClick={() => setViewMode('table')}
         >
           Table
         </Button>
-        {columnEntries.map(([columnKey, tasks]) => (
-          <Button
-            key={columnKey}
-            size='sm'
-            variant={activeColumn === columnKey ? 'default' : 'outline'}
-            className='h-8 shrink-0 rounded-md px-3 text-xs'
-            onClick={() => setActiveColumn(columnKey)}
-          >
-            {COLUMN_TITLES[columnKey]} ({tasks.length})
-          </Button>
-        ))}
+      </div>
+
+      <div className='mb-3 flex shrink-0 gap-1 overflow-x-auto pb-1 md:hidden'>
+        {viewMode === 'board'
+          ? columnEntries.map(([columnKey, tasks]) => (
+              <Button
+                key={columnKey}
+                size='sm'
+                variant={activeColumn === columnKey ? 'default' : 'outline'}
+                className='h-8 shrink-0 rounded-md px-3 text-xs'
+                onClick={() => setActiveColumn(columnKey)}
+              >
+                {COLUMN_TITLES[columnKey]} ({tasks.length})
+              </Button>
+            ))
+          : null}
       </div>
 
       <div className='mb-3 hidden shrink-0 gap-2 md:flex'>

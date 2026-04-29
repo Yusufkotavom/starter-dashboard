@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +20,11 @@ export default function ProjectViewPage({ projectId }: { projectId: string }) {
 
 function EditProjectView({ projectId }: { projectId: number }) {
   const { data } = useSuspenseQuery(projectByIdOptions(projectId));
+  const searchParams = useSearchParams();
+  const defaultTab = useMemo(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'docs' ? 'docs' : 'project';
+  }, [searchParams]);
 
   if (!data) {
     notFound();
@@ -26,7 +33,7 @@ function EditProjectView({ projectId }: { projectId: number }) {
   const project = data as Project;
 
   return (
-    <Tabs defaultValue='project' className='space-y-4'>
+    <Tabs defaultValue={defaultTab} className='space-y-4'>
       <TabsList>
         <TabsTrigger value='project'>Project</TabsTrigger>
         <TabsTrigger value='docs'>Docs</TabsTrigger>
