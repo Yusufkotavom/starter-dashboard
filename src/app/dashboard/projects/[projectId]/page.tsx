@@ -6,11 +6,16 @@ import ProjectViewPage from '@/features/projects/components/project-view-page';
 import { quotationsQueryOptions } from '@/features/quotations/api/queries';
 import { getQueryClient } from '@/lib/query-client';
 
-type PageProps = { params: Promise<{ projectId: string }> };
+type PageProps = {
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ tab?: string }>;
+};
 
 export default async function Page(props: PageProps) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const queryClient = getQueryClient();
+  const defaultTab = searchParams.tab === 'docs' ? 'docs' : 'project';
 
   void queryClient.prefetchQuery(clientsQueryOptions({ page: 1, limit: 1000 }));
   void queryClient.prefetchQuery(quotationsQueryOptions({ page: 1, limit: 1000 }));
@@ -22,7 +27,7 @@ export default async function Page(props: PageProps) {
   return (
     <PageContainer>
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <ProjectViewPage projectId={params.projectId} />
+        <ProjectViewPage projectId={params.projectId} defaultTab={defaultTab} />
       </HydrationBoundary>
     </PageContainer>
   );

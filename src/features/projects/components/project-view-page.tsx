@@ -1,7 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,21 +8,26 @@ import { projectByIdOptions } from '../api/queries';
 import ProjectForm from './project-form';
 import { ProjectDocsPanel } from './project-docs-panel';
 
-export default function ProjectViewPage({ projectId }: { projectId: string }) {
+type ProjectTab = 'project' | 'docs';
+
+interface ProjectViewPageProps {
+  projectId: string;
+  defaultTab?: ProjectTab;
+}
+
+export default function ProjectViewPage({
+  projectId,
+  defaultTab = 'project'
+}: ProjectViewPageProps) {
   if (projectId === 'new') {
     return <ProjectForm initialData={null} pageTitle='Create Project' />;
   }
 
-  return <EditProjectView projectId={Number(projectId)} />;
+  return <EditProjectView projectId={Number(projectId)} defaultTab={defaultTab} />;
 }
 
-function EditProjectView({ projectId }: { projectId: number }) {
+function EditProjectView({ projectId, defaultTab }: { projectId: number; defaultTab: ProjectTab }) {
   const { data } = useSuspenseQuery(projectByIdOptions(projectId));
-  const searchParams = useSearchParams();
-  const defaultTab = useMemo(() => {
-    const tab = searchParams.get('tab');
-    return tab === 'docs' ? 'docs' : 'project';
-  }, [searchParams]);
 
   if (!data) {
     notFound();
