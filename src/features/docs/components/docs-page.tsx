@@ -62,13 +62,22 @@ export default function DocsPage() {
         selectedProjectFilter === 'all'
           ? '/docs'
           : `/docs?projectId=${Number(selectedProjectFilter)}`
-      )
+      ),
+    retry: false
   });
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects', 'docs-selector'],
-    queryFn: () =>
-      apiClient<{ items: ProjectListItem[] }>('/projects?page=1&limit=200&sort=name.asc')
+    queryFn: async () => {
+      try {
+        return await apiClient<{ items: ProjectListItem[] }>(
+          '/projects?page=1&limit=200&sort=%5B%7B%22id%22%3A%22name%22%2C%22desc%22%3Afalse%7D%5D'
+        );
+      } catch {
+        return { items: [] };
+      }
+    },
+    retry: false
   });
 
   const docs = docsData?.items ?? [];
