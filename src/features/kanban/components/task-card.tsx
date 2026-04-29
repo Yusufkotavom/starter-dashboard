@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +22,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { deleteKanbanTaskMutation, updateKanbanTaskMutation } from '../api/mutations';
 import { COLUMN_TITLES } from './board-column';
 import type { KanbanColumnKey, KanbanTask } from '../api/types';
 
@@ -41,6 +46,55 @@ interface TaskCardProps extends Omit<React.ComponentProps<typeof KanbanItem>, 'v
 
 export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) {
   const isDone = column === 'done';
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description ?? '');
+  const [assignee, setAssignee] = useState(task.assignee ?? '');
+  const [dueDate, setDueDate] = useState(task.dueDate ?? '');
+  const [priority, setPriority] = useState<KanbanTask['priority']>(task.priority);
+
+  const updateTask = useMutation({
+    ...updateKanbanTaskMutation,
+    onSuccess: () => {
+      setOpen(false);
+    }
+  });
+  const deleteTask = useMutation({
+    ...deleteKanbanTaskMutation,
+    onSuccess: () => {
+      setOpen(false);
+    }
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setTitle(task.title);
+    setDescription(task.description ?? '');
+    setAssignee(task.assignee ?? '');
+    setDueDate(task.dueDate ?? '');
+    setPriority(task.priority);
+  }, [open, task]);
+
+  const isSaving = updateTask.isPending || deleteTask.isPending;
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!title.trim()) {
+      return;
+    }
+
+    updateTask.mutate({
+      id: task.id,
+      payload: {
+        title: title.trim(),
+        description: description.trim(),
+        assignee: assignee.trim(),
+        dueDate: dueDate.trim(),
+        priority
+      }
+    });
+  }
 
   return (
     <KanbanItem key={task.id} value={task.id} asChild {...props}>
@@ -134,7 +188,7 @@ export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) 
               </button>
             </KanbanItemHandle>
           </div>
-          <Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button variant='ghost' size='sm' className='h-7 justify-start px-2 text-xs'>
                 Open detail
@@ -148,32 +202,79 @@ export function TaskCard({ task, column, onMoveTask, ...props }: TaskCardProps) 
                   {task.artifactPath ? ` · ${task.artifactPath}` : ''}
                 </DialogDescription>
               </DialogHeader>
-              <div className='space-y-3 text-sm'>
-                <div className='rounded-md border p-3'>
-                  <div className='text-muted-foreground mb-1 text-xs'>Description</div>
-                  <div className='whitespace-pre-wrap'>
-                    {task.description?.trim() ? task.description : 'No description yet.'}
-                  </div>
+              <form className='space-y-3 text-sm' onSubmit={handleSubmit}>
+                <div className='space-y-1'>
+                  <div className='text-muted-foreground text-xs'>Title</div>
+                  <Input value={title} onChange={(event) => setTitle(event.target.value)} />
                 </div>
-                <div className='grid gap-2 rounded-md border p-3 sm:grid-cols-2'>
-                  <div>
+                <div className='space-y-1'>
+                  <div className='text-muted-foreground text-xs'>Description</div>
+                  <Textarea
+                    rows={4}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                  />
+                </div>
+                <div className='grid gap-2 sm:grid-cols-2'>
+                  <div className='space-y-1'>
                     <div className='text-muted-foreground text-xs'>Assignee</div>
-                    <div>{task.assignee || 'Unassigned'}</div>
+                    <Input
+                      value={assignee}
+                      onChange={(event) => setAssignee(event.target.value)}
+                      placeholder='Unassigned'
+                    />
                   </div>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>Priority</div>
-                    <div className='capitalize'>{task.priority}</div>
-                  </div>
-                  <div>
-                    <div className='text-muted-foreground text-xs'>Column</div>
-                    <div>{COLUMN_TITLES[column]}</div>
-                  </div>
-                  <div>
+                  <div className='space-y-1'>
                     <div className='text-muted-foreground text-xs'>Due Date</div>
-                    <div>{task.dueDate || '-'}</div>
+                    <Input
+                      value={dueDate}
+                      onChange={(event) => setDueDate(event.target.value)}
+                      placeholder='YYYY-MM-DD'
+                    />
+                  </div>
+                  <div className='space-y-1'>
+                    <div className='text-muted-foreground text-xs'>Priority</div>
+                    <Select
+                      value={priority}
+                      onValueChange={(value) => setPriority(value as KanbanTask['priority'])}
+                    >
+                      <SelectTrigger size='sm' className='w-full'>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='high'>High</SelectItem>
+                        <SelectItem value='medium'>Medium</SelectItem>
+                        <SelectItem value='low'>Low</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </div>
+                <div className='flex flex-wrap items-center justify-between gap-2 rounded-md border p-3'>
+                  <div className='text-muted-foreground text-xs'>
+                    Column: {COLUMN_TITLES[column]}
+                  </div>
+                  <Button
+                    type='button'
+                    variant='destructive'
+                    size='sm'
+                    isLoading={deleteTask.isPending}
+                    disabled={isSaving}
+                    onClick={() => deleteTask.mutate(task.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+                <div className='flex justify-end gap-2'>
+                  <Button
+                    type='submit'
+                    size='sm'
+                    isLoading={updateTask.isPending}
+                    disabled={isSaving}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </form>
             </DialogContent>
           </Dialog>
           <div className='flex items-center gap-1 text-[11px]'>

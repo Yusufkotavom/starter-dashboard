@@ -110,7 +110,7 @@ export const navGroups: NavGroup[] = [
       {
         title: 'All Projects',
         url: '/dashboard/projects',
-        icon: 'kanban',
+        icon: 'workspace',
         shortcut: ['p', 'j'],
         isActive: false,
         items: []

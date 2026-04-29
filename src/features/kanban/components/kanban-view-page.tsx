@@ -63,7 +63,7 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
         <div
           className={
             compact
-              ? 'flex w-full items-center justify-end gap-2'
+              ? 'flex w-auto max-w-full flex-wrap items-center justify-end gap-2'
               : 'flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap'
           }
         >
@@ -71,7 +71,7 @@ export default function KanbanViewPage({ context, compact = false }: KanbanViewP
             asChild
             variant='outline'
             size='sm'
-            className={compact ? 'shrink-0' : 'w-full sm:w-auto'}
+            className={compact ? 'shrink-0 whitespace-nowrap' : 'w-full sm:w-auto'}
           >
             <Link href={toggleCompactHref}>
               <ToggleCompactIcon className='mr-2 h-4 w-4' />

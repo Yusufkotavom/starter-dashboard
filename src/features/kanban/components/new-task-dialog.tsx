@@ -83,7 +83,7 @@ export default function NewTaskDialog({ projectId }: NewTaskDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant='secondary' size='sm'>
+        <Button variant='secondary' size='sm' className='w-auto whitespace-nowrap'>
           + Add New Task
         </Button>
       </DialogTrigger>
