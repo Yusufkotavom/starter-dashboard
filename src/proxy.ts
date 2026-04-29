@@ -1,7 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { isDashboardAdminByClaims } from '@/lib/access-control';
 
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
 const isPortalRoute = createRouteMatcher(['/portal(.*)']);
@@ -13,15 +12,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
 
   if (isDashboardRoute(req)) {
-    const authState = await auth();
-    if (!authState.userId) {
-      await auth.protect();
-      return NextResponse.next();
-    }
-
-    if (!isDashboardAdminByClaims(authState.sessionClaims)) {
-      return NextResponse.redirect(new URL('/portal', req.url));
-    }
+    await auth.protect();
+    return NextResponse.next();
   }
 
   return NextResponse.next();
